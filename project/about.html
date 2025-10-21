@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>О нас — HEVEL AR-Solar Design Studio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>О нас</h1>
+  </header>
+
+  <nav class="navbar">
+  <div class="nav-left">
+    <a href="index.html" class="logo">☀️ HEVEL</a>
+
+    <ul class="menu" id="menu">
+      <li class="dropdown">
+        <button class="dropbtn">Меню </button>
+        <div class="dropdown-content">
+          <a href="index.html">Визуализация</a>
+          <a href="about.html">О нас</a>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <button id="theme-toggle" class="theme-toggle">🌙</button>
+</nav>
+
+  <main style="text-align:center; padding:50px;">
+    <h2>Ещё в разработке 🚧</h2>
+    <p>Эта страница скоро будет готова!</p>
+  </main>
+<script>
+  // Ждём, пока DOM загрузится
+  document.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
+
+    if (!themeToggle) return; // Если кнопки нет, ничего не делаем
+
+    // Проверка сохранённой темы при загрузке
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      body.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    } else {
+      body.classList.remove('dark');
+      themeToggle.textContent = '🌙';
+    }
+
+    // Обработчик кнопки переключения
+    themeToggle.addEventListener('click', () => {
+      themeToggle.classList.add('rotate');
+
+      const isDark = !body.classList.contains('dark');
+      body.classList.toggle('dark');
+      themeToggle.textContent = isDark ? '☀️' : '🌙';
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+      setTimeout(() => themeToggle.classList.remove('rotate'), 600);
+    });
+  });
+</script>
+</body>
+</html>
