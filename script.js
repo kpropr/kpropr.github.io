@@ -231,3 +231,61 @@ input.addEventListener('change', (e) => {
     };
     img.src = URL.createObjectURL(file);
 });
+// === РАСЧЁТ ПО РЕГИОНАМ РОССИИ (через hevel_modules.json) ===
+
+let regions = {};
+
+// Загружаем данные по регионам
+fetch('regions.json')
+  .then(r => r.json())
+  .then(data => {
+    regions = data;
+    console.log("Данные по регионам успешно загружены.");
+  })
+  .catch(err => console.error("Ошибка загрузки regions.json:", err));
+
+// Инициализация карты (если есть)
+const svgMap = document.getElementById('svgmap');
+
+if (svgMap) {
+  const regionPaths = svgMap.querySelectorAll('.region');
+  const resultsBox = document.getElementById('results-display');
+
+  regionPaths.forEach(path => {
+    path.addEventListener('click', () => {
+      const regionId = path.dataset.region;
+      const region = regions[regionId];
+
+      if (!region) {
+        console.warn("Регион не найден:", regionId);
+        return;
+      }
+
+      // Подсветка выбранного региона
+      svgMap.querySelectorAll('.region').forEach(p => p.classList.remove('selected'));
+      path.classList.add('selected');
+
+      // Загружаем данные панели HEVEL из твоего JSON (он уже загружен ранее)
+      const hevelPanel = panelData['HVL-450-HJT'];
+      const count = parseInt(document.getElementById('count').value);
+
+      // Используем региональное PVOUT
+      const pvout = region.pvout;
+      const systemPowerKW = (hevelPanel.max_power * count) / 1000;
+      const yearlyGen = pvout * systemPowerKW * SYSTEM_LOSS_FACTOR; // из твоего верхнего кода
+      const yearlySavings = yearlyGen * ELECTRICITY_TARIFF;
+
+      // Обновляем результаты
+      resultsBox.innerHTML = 
+        <h3>${region.name} регион</h3>
+        <p><strong>Панель:</strong> ${hevelPanel.name}</p>
+        <p><strong>Мощность одной панели:</strong> ${hevelPanel.max_power} Вт</p>
+        <p><strong>Количество панелей:</strong> ${count}</p>
+        <p><strong>Инсоляция (PVOUT):</strong> ${pvout} кВт·ч/кВтp/год</p>
+        <p><strong>Мощность системы:</strong> ${systemPowerKW.toFixed(2)} кВт</p>
+        <p><strong>Годовая выработка:</strong> ${Math.round(yearlyGen).toLocaleString('ru-RU')} кВт·ч</p>
+        <p><strong>Годовая экономия:</strong> ${Math.round(yearlySavings).toLocaleString('ru-RU')} ₽/год</p>
+      ;
+    });
+  });
+}
