@@ -133,5 +133,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Модели-вьюеры не требуют слушателей, они работают автоматически
 });
+// === КАРТА РЕГИОНОВ РОССИИ ДЛЯ РАСЧЁТА ===
+
+// Загружаем данные по регионам (pvout)
+let regions = {};
+fetch('regions.json')
+  .then(r => r.json())
+  .then(data => {
+    regions = data;
+    console.log("Данные по регионам успешно загружены.");
+  })
+  .catch(err => console.error("Ошибка загрузки regions.json:", err));
+
+// При выборе региона — подставляем pvout и пересчитываем
+document.addEventListener('DOMContentLoaded', () => {
+  const svgMap = document.getElementById('svgmap');
+  const pvoutDisplay = document.getElementById('pvout-value');
+
+  if (!svgMap) return;
+
+  svgMap.querySelectorAll('.region').forEach(regionPath => {
+    regionPath.addEventListener('click', () => {
+      const regionId = regionPath.dataset.region;
+      const region = regions[regionId];
+      if (!region) return;
+
+      // Подсветка выбранного региона
+      svgMap.querySelectorAll('.region').forEach(p => p.classList.remove('selected'));
+      regionPath.classList.add('selected');
+
+      // Показываем текущее значение PVOUT
+      if (pvoutDisplay) pvoutDisplay.textContent = ${region.pvout} кВт·ч/кВтp/год;
+
+      // Перезапускаем расчёт с новым значением инсоляции
+      calculateAndDisplayRegion(region.pvout, region.name);
+    });
+  });
+});
+
+// Основная функция расчёта с учётом региона
+function calculateAndDisplayRegion(pvout, regionName) {
+  const count = parseInt(document.getElementById('count').value);
+  const module = panelData['HVL-450-HJT']; // только HEVEL
+
+  if (!module  isNaN(count)  count === 0) {
+    console.error("Некорректные данные для расчёта региона.");
+    return;
+  }
+
+  // расчёты
+  const totalPowerKW = (module.max_power * count) / 1000;
+  const yearlyGeneration = totalPowerKW * pvout * SYSTEM_LOSS_FACTOR;
+  const yearlySavings = yearlyGeneration * ELECTRICITY_TARIFF;
+
+  // вывод
+  const resultsBox = document.getElementById('comparison-output');
+  resultsBox.innerHTML = 
+    <h3>${regionName} регион</h3>
+    <p><strong>Инсоляция (PVOUT):</strong> ${pvout} кВт·ч/кВтp/год</p>
+    <p><strong>Мощность системы:</strong> ${totalPowerKW.toFixed(2)} кВт</p>
+    <p><strong>Годовая выработка:</strong> ${Math.round(yearlyGeneration).toLocaleString('ru-RU')} кВт·ч</p>
+    <p><strong>Годовая экономия:</strong> ${Math.round(yearlySavings).toLocaleString('ru-RU')} ₽/год</p>
+  ;
+}
+
 
 
