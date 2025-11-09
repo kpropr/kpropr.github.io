@@ -378,3 +378,30 @@ body.dark #roof-canvas {
   border-color: #444;
 
 }
+#map {
+  transition: box-shadow 0.3s ease;
+}
+#map:hover {
+  box-shadow: 0 0 10px rgba(255, 221, 0, 0.4);
+}
+.leaflet-control-coords {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  font-family: Arial, sans-serif;
+}
+
+body.dark .leaflet-control-coords {
+  background: rgba(30, 30, 30, 0.85);
+  color: #ffcc00;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
+}
+#map {
+  width: 100%;
+  height: 600px;
+  border-radius: 12px;
+  overflow: hidden;
+}
