@@ -1,5 +1,6 @@
 // Глобальная переменная для хранения данных из JSON
 let panelData = {};
+let selectedRegion = null;
 
 // Условные данные для расчетов (можно настроить)
 const SIM_HOURS = 1400; // Суммарный Инсоляционный Модуль (эффективные солнечные часы в год)
@@ -8,106 +9,144 @@ const SYSTEM_LOSS_FACTOR = 0.85; // Коэффициент системных п
 
 // 1. Функция для загрузки данных из JSON
 async function loadPanelData() {
-    try {
-        // Используем fetch для загрузки локального JSON-файла
-        const response = await fetch('hevel_modules.json');
-        panelData = await response.json();
-        
-        // Запускаем первый расчет, чтобы показать не-нулевые данные
-        calculateAndDisplay(); 
-        console.log("Данные HEVEL успешно загружены.");
+  try {
+    const response = await fetch('hevel_modules.json');
+    panelData = await response.json();
+    console.log("✅ Данные HEVEL успешно загружены.");
 
-    } catch (error) {
-        console.error("Ошибка загрузки данных HEVEL. Проверьте, запущен ли live-server:", error);
-    }
+    // запускаем первый расчёт только после загрузки данных
+    setTimeout(() => {
+      calculateAndDisplay();
+    }, 300);
+  } catch (error) {
+    console.error("❌ Ошибка загрузки данных HEVEL:", error);
+  }
 }
 
 // 2. Основная функция для расчета и обновления интерфейса
-function calculateAndDisplay() {
-    // === СЧИТЫВАНИЕ ВХОДНЫХ ДАННЫХ ИЗ ИНТЕРФЕЙСА ===
-    const selectedModelId = document.getElementById('panel-model').value;
-    const countInput = document.getElementById('count');
-    const tempInput = document.getElementById('temp');
-    
-    // Преобразование в числа
-    const count = parseInt(countInput.value);
-    const roofTemp = parseInt(tempInput.value);
-    
-    // Получение данных по выбранной модели (HJT или Standard)
-    const module = panelData[selectedModelId];
+// Теперь принимает optional pvout и regionName (если выбрали регион)
+function calculateAndDisplay(customPvout = null, regionName = null) {
+  // Проверка: данные панели должны быть загружены
+  if (!panelData || Object.keys(panelData).length === 0) {
+    console.warn("Данные panelData ещё не загружены — расчёт отложен.");
+    return;
+  }
 
-    // Проверка на корректность данных
-    if (!module || isNaN(count) || count === 0) {
-        console.error("Данные модуля не найдены или количество равно нулю.");
-        return; 
+  // Элементы UI
+  const modelSelect = document.getElementById('panel-model');
+  const countInput = document.getElementById('count');
+  const areaInput = document.getElementById('area'); // новый input площади
+  const countValueDisplay = document.getElementById('count-value');
+  const areaValueDisplay = document.getElementById('area-value');
+
+  if (!countInput) return;
+
+  // Считываем значения
+  const selectedModelId = modelSelect?.value || 'HVL-450-HJT';
+  let count = parseInt(countInput.value, 10) || 0;
+  const area = parseFloat(areaInput?.value || 0);
+
+  // берём данные модуля
+  const module = panelData[selectedModelId];
+  if (!module) {
+    console.warn("Модель панели не найдена в panelData:", selectedModelId);
+    return;
+  }
+
+  // Ограничение числа панелей по площади (если введена площадь)
+  const PANEL_AREA_M2 = 2.1; // м² на одну панель (подстрой при необходимости)
+  let maxPanels = Infinity;
+  if (area > 0) {
+    maxPanels = Math.floor(area / PANEL_AREA_M2);
+    if (maxPanels < 1) maxPanels = 0;
+    // установим ограничение на слайдер (если он есть)
+    try {
+      countInput.max = maxPanels;
+    } catch (e) {}
+    // если текущее значение больше максимально допустимого — уменьшаем
+    if (count > maxPanels) {
+      count = maxPanels;
+      countInput.value = count;
     }
+  }
+  if (countValueDisplay) countValueDisplay.textContent = count;
+  if (areaValueDisplay) areaValueDisplay.textContent = area ? `${area} м²` : '—';
 
-    // === БАЗОВЫЕ ЭКОНОМИЧЕСКИЕ РАСЧЕТЫ ===
-    
-    // Общая мощность системы (Вт)
-    const totalPowerWatts = module.max_power * count; 
-    const totalPowerKW = totalPowerWatts / 1000;
-    
-    // Годовая выработка (кВт·ч)
-    const yearlyGeneration = totalPowerKW * SIM_HOURS * SYSTEM_LOSS_FACTOR; 
-    
-    // Годовая экономия/прибыль
+  // Расчёты
+  const totalPowerKW = (module.max_power * count) / 1000; // кВт
+  // если регион не выбран — выводим сообщение и выходим
+if (!selectedRegion && customPvout === null) {
+  const output = document.getElementById('comparison-output');
+  if (output) {
+    output.innerHTML = `
+      <p style="opacity:0.8; font-style:italic; color:#777;">
+        🗺️ Регион ещё не выбран. Пожалуйста, выберите область на карте, чтобы рассчитать показатели.
+      </p>
+    `;
+  }
+  return; // прекращаем выполнение функции
+}
+
+// используем выбранный pvout
+let pvout = customPvout !== null ? customPvout : selectedRegion.pvout;
+
+
+  const yearlyGeneration = totalPowerKW * pvout * SYSTEM_LOSS_FACTOR;
+  const yearlySavings = yearlyGeneration * ELECTRICITY_TARIFF;
+  const totalSystemCost = (module.price_rub || 0) * count;
+  const paybackPeriod = yearlySavings > 0 ? totalSystemCost / yearlySavings : 'N/A';
+
+  // Вывод основных результатов (тот же блок, который у тебя был)
+  const totalPowerEl = document.getElementById('total-power');
+  const yearlyGenerationEl = document.getElementById('yearly-generation');
+  const yearlySavingsEl = document.getElementById('yearly-savings');
+  const paybackPeriodEl = document.getElementById('payback-period');
+
+  if (totalPowerEl) totalPowerEl.textContent = totalPowerKW.toFixed(1) + ' кВт';
+  if (yearlyGenerationEl) yearlyGenerationEl.textContent = Math.round(yearlyGeneration).toLocaleString('ru-RU');
+  if (yearlySavingsEl) yearlySavingsEl.textContent = Math.round(yearlySavings).toLocaleString('ru-RU') + ' ₽';
+  if (paybackPeriodEl) paybackPeriodEl.textContent = (typeof paybackPeriod === 'number') ? (paybackPeriod.toFixed(1) + ' лет') : paybackPeriod;
+  // --- если выбран регион, пересчитываем для него ---
+  if (selectedRegion) {
+    const pvout = selectedRegion.pvout;
+    const regionName = selectedRegion.name;
+
+    const selectedModel = panelData["HVL-450-HJT"];
+    const totalPowerKW = (selectedModel.max_power * count) / 1000;
+    const yearlyGeneration = totalPowerKW * pvout * SYSTEM_LOSS_FACTOR;
     const yearlySavings = yearlyGeneration * ELECTRICITY_TARIFF;
-
-    // Общая стоимость системы (упрощенно: только панели)
-    const totalSystemCost = module.price_rub * count;
-    
-    // Срок окупаемости (для демонстрации)
+    const totalSystemCost = selectedModel.price_rub * count;
     const paybackPeriod = yearlySavings > 0 ? totalSystemCost / yearlySavings : 'N/A';
 
-    // === РАСЧЕТ ПАДЕНИЯ МОЩНОСТИ (Сравнение HEVEL HJT vs Standard) ===
-    
-    // Функция расчета фактической мощности при заданной температуре
-    function calculatePowerDrop(modelId, temp) {
-        const model = panelData[modelId];
-        const tempDelta = temp - 25; // Разница относительно STC (25°C)
-        
-        // Падение мощности в процентах: (температурный коэффициент * дельта температуры)
-        const powerDropPercent = tempDelta * model.temp_coeff; 
-        
-        // Фактическая мощность
-        const actualPower = model.max_power * (1 + powerDropPercent / 100);
-        
-        return {
-            actualPower: Math.round(actualPower),
-            powerDrop: Math.round(powerDropPercent * 10) / 10 
-        };
+    const output = document.getElementById('comparison-output');
+    if (output) {
+      output.innerHTML = `
+        <h3>${regionName}</h3>
+        <p>Инсоляция (PVOUT): ${pvout} кВт·ч/кВтp/год</p>
+        <p>Выработка: ${Math.round(yearlyGeneration).toLocaleString('ru-RU')} кВт·ч</p>
+        <p>Экономия: ${Math.round(yearlySavings).toLocaleString('ru-RU')} ₽/год</p>
+        <p>Срок окупаемости: ${typeof paybackPeriod === 'number' ? paybackPeriod.toFixed(1) + ' лет' : '—'}</p>
+      `;
     }
-    
-    // Получаем результаты для обеих технологий при текущей температуре
-    const hevelResult = calculatePowerDrop('HVL-450-HJT', roofTemp);
-    const standardResult = calculatePowerDrop('Standard-PERC', roofTemp);
-    
-    // Разница в процентах
-    const percentBetter = ((hevelResult.actualPower / standardResult.actualPower) - 1) * 100;
-
-    // Формирование HTML для блока сравнения
-    let comparisonOutputHTML = `
-        <p><strong>Температура: ${roofTemp}°C</strong></p>
-        <p>Панель HEVEL (${panelData['HVL-450-HJT'].max_power} Вт): ${hevelResult.actualPower} Вт (потеря: ${hevelResult.powerDrop}%)</p>
-        <p>Стандартная панель (${panelData['Standard-PERC'].max_power} Вт): ${standardResult.actualPower} Вт (потеря: ${standardResult.powerDrop}%)</p>
-        <p class="highlight">🔥 HEVEL вырабатывает на <strong>${Math.round(percentBetter)}%</strong> больше энергии при ${roofTemp}°C!</p>
+  }
+  else {
+  const output = document.getElementById('comparison-output');
+  if (output) {
+    output.innerHTML = `
+      <p style="opacity:0.8; font-style:italic; color:#777;">
+        🗺️ Регион ещё не выбран. Пожалуйста, выберите область на карте, чтобы рассчитать показатели.
+      </p>
     `;
-
-
-    // === ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ===
-    document.getElementById('total-power').textContent = Math.round(totalPowerKW * 10) / 10 + ' кВт';
-    document.getElementById('yearly-generation').textContent = Math.round(yearlyGeneration).toLocaleString('ru-RU');
-    document.getElementById('yearly-savings').textContent = Math.round(yearlySavings).toLocaleString('ru-RU') + ' ₽';
-    document.getElementById('payback-period').textContent = typeof paybackPeriod === 'number' ? Math.round(paybackPeriod * 10) / 10 + ' лет' : paybackPeriod;
-
-    document.getElementById('comparison-output').innerHTML = comparisonOutputHTML;
+    }
+  }
 }
+
 
 // 3. Обработчики событий (Запуск при взаимодействии)
 document.addEventListener('DOMContentLoaded', () => {
     // Загружаем данные JSON при старте
     loadPanelData();
+    console.log("📂 Загружаем данные панелей...");
 
     // Вспомогательная функция для обновления ползунков и запуска расчетов
     const setupInputListeners = (id, valueDisplayId) => {
@@ -126,76 +165,167 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Вешаем слушателей на ползунки и select (должны совпадать с ID в index.html)
-    document.getElementById('panel-model').addEventListener('change', calculateAndDisplay);
+    // document.getElementById('panel-model').addEventListener('change', calculateAndDisplay);
     
     setupInputListeners('count', 'count-value');
-    setupInputListeners('temp', 'temp-value');
+    setupInputListeners('area', 'area-value');
 
     // Модели-вьюеры не требуют слушателей, они работают автоматически
 });
-// === КАРТА РЕГИОНОВ РОССИИ ДЛЯ РАСЧЁТА ===
+// === КАРТА РЕГИОНОВ РОССИИ ===
 
-// Загружаем данные по регионам (pvout)
 let regions = {};
 fetch('regions.json')
   .then(r => r.json())
   .then(data => {
     regions = data;
-    console.log("Данные по регионам успешно загружены.");
+    console.log("Данные регионов загружены.");
   })
   .catch(err => console.error("Ошибка загрузки regions.json:", err));
 
-// При выборе региона — подставляем pvout и пересчитываем
 document.addEventListener('DOMContentLoaded', () => {
   const svgMap = document.getElementById('svgmap');
-  const pvoutDisplay = document.getElementById('pvout-value');
-
   if (!svgMap) return;
 
-  svgMap.querySelectorAll('.region').forEach(regionPath => {
-    regionPath.addEventListener('click', () => {
-      const regionId = regionPath.dataset.region;
-      const region = regions[regionId];
-      if (!region) return;
+  svgMap.querySelectorAll('.region').forEach(region => {
+    region.addEventListener('click', () => {
+      const id = region.dataset.region;
+      const reg = regions[id];
+      selectedRegion = reg;
+      if (!reg) return;
 
-      // Подсветка выбранного региона
-      svgMap.querySelectorAll('.region').forEach(p => p.classList.remove('selected'));
-      regionPath.classList.add('selected');
+      // Подсветка
+      svgMap.querySelectorAll('.region').forEach(r => r.classList.remove('selected'));
+      region.classList.add('selected');
 
-      // Показываем текущее значение PVOUT
-      if (pvoutDisplay) pvoutDisplay.textContent = ${region.pvout} кВт·ч/кВтp/год;
-
-      // Перезапускаем расчёт с новым значением инсоляции
-      calculateAndDisplayRegion(region.pvout, region.name);
+      // Перерасчёт с новым PVOUT
+      calculateAndDisplay(reg.pvout, reg.name);
     });
   });
+
+  // при изменении ползунков — тоже обновляем расчёт
+  ['count', 'area', 'panel-model'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => calculateAndDisplay());
+    el.addEventListener('change', () => calculateAndDisplay());
+  });
+
+  // Первый расчёт после загрузки JSON
+  setTimeout(() => calculateAndDisplay(), 1000);
 });
 
-// Основная функция расчёта с учётом региона
-function calculateAndDisplayRegion(pvout, regionName) {
-  const count = parseInt(document.getElementById('count').value);
-  const module = panelData['HVL-450-HJT']; // только HEVEL
+// === ГЛОБУС MAPLIBRE (рабочий, без токена) ===
+document.addEventListener('DOMContentLoaded', () => {
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {
+        osm: {
+          type: 'raster',
+          tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution: '&copy; OpenStreetMap contributors'
+        }
+      },
+      layers: [
+        {
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': '#aee0ff' }
+        },
+        {
+          id: 'osm-layer',
+          type: 'raster',
+          source: 'osm'
+        }
+      ]
+    },
+    center: [105, 63],
+    zoom: 2.5,
+    projection: 'globe' // 🌍 именно это делает 3D-глобус
+  });
 
-  if (!module  isNaN(count)  count === 0) {
-    console.error("Некорректные данные для расчёта региона.");
-    return;
-  }
+  // Атмосфера (работает только в 3.0+)
+  map.on('style.load', () => {
+    if (map.setFog) {
+      map.setFog({
+        color: 'rgba(255,255,255,0)',
+        'space-color': 'rgb(5,5,15)',
+        'horizon-blend': 0.05
+      });
+    }
+  });
 
-  // расчёты
-  const totalPowerKW = (module.max_power * count) / 1000;
-  const yearlyGeneration = totalPowerKW * pvout * SYSTEM_LOSS_FACTOR;
-  const yearlySavings = yearlyGeneration * ELECTRICITY_TARIFF;
+  // === Грузим регионы России ===
+  fetch('russia_regions.geojson')
+    .then(res => res.json())
+    .then(data => {
+      map.addSource('russia', { type: 'geojson', data });
 
-  // вывод
-  const resultsBox = document.getElementById('comparison-output');
-  resultsBox.innerHTML = 
-    <h3>${regionName} регион</h3>
-    <p><strong>Инсоляция (PVOUT):</strong> ${pvout} кВт·ч/кВтp/год</p>
-    <p><strong>Мощность системы:</strong> ${totalPowerKW.toFixed(2)} кВт</p>
-    <p><strong>Годовая выработка:</strong> ${Math.round(yearlyGeneration).toLocaleString('ru-RU')} кВт·ч</p>
-    <p><strong>Годовая экономия:</strong> ${Math.round(yearlySavings).toLocaleString('ru-RU')} ₽/год</p>
-  ;
-}
+      // Базовая заливка
+      map.addLayer({
+        id: 'russia-fill',
+        type: 'fill',
+        source: 'russia',
+        paint: {
+          'fill-color': '#b8d8ff',
+          'fill-opacity': 0.6
+        }
+      });
 
+      // Контуры
+      map.addLayer({
+        id: 'russia-borders',
+        type: 'line',
+        source: 'russia',
+        paint: {
+          'line-color': '#333',
+          'line-width': 1
+        }
+      });
 
+      let selectedRegion = null;
+
+      // При наведении — подсветка
+      map.on('mousemove', 'russia-fill', (e) => {
+        map.getCanvas().style.cursor = e.features.length ? 'pointer' : '';
+      });
+
+      // === Клик по региону ===
+      map.on('click', 'russia-fill', (e) => {
+        const props = e.features[0].properties;
+        const regionName = props.name;
+        const pvout = props.pvout;
+
+        selectedRegion = regionName;
+
+        // Подсветка только выбранного региона
+        map.setPaintProperty('russia-fill', 'fill-color', [
+          'match',
+          ['get', 'name'],
+          regionName, '#ffd700', // выбранный — золотой
+          '#b8d8ff' // остальные — синие
+        ]);
+
+        // Плавно приближаем
+        map.flyTo({
+          center: e.lngLat,
+          zoom: 3.8,
+          speed: 0.6,
+          curve: 1.2
+        });
+
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`<b>${regionName}</b><br>PVOUT: ${pvout} кВт·ч/кВтp/год`)
+          .addTo(map);
+
+        // Вызываем твой расчёт
+        calculateAndDisplay(pvout, regionName);
+      });
+    })
+    .catch(err => console.error("Ошибка загрузки карты:", err));
+});
 
