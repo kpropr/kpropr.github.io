@@ -5,7 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HEVEL AR-Solar Design Studio</title>
     <link rel="stylesheet" href="style.css"> 
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <!-- маплибре глобус -->
+   <!-- MAPLIBRE GL JS -->
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<style>
+  #map {
+    width: 100%;
+    height: 600px;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .maplibregl-popup {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+  }
+</style>
 </head>
 <body>
 
@@ -37,66 +52,28 @@
     <!-- Левая колонка -->
     <section class="settings">
       <h2>⚙️ Настройки проекта</h2>
-      <label for="panel-model">Модель HEVEL:</label>
-      <select id="panel-model">
-        <option value="HVL-450-HJT">HVL-450/HJT (Гетероструктура)</option>
-        <option value="Standard-PERC">Стандартный PERC (Для сравнения)</option>
-      </select>
-
+      <h3>Модель панели:</h3>
+       <p id="panel-model-name"><strong>HEVEL HVL-450/HJT (гетероструктура)</strong></p>
       <label for="count">Количество модулей: <span id="count-value">10</span></label>
       <input type="range" id="count" min="1" max="50" value="10">
 
-      <label for="temp">Температура крыши (°C): <span id="temp-value">25</span></label>
-      <input type="range" id="temp" min="25" max="70" value="25">
+      <label for="area">Площадь под панели (м²):</label>
+      <input type="number" id="area" min="1" max="1000" value="50">
     </section>
 
     <section class="central-column">
-  <div class="map-section">
+     <div class="map-section">
     <h2>🗺️ Карта России — выберите регион</h2>
     <p>Кликните на область, чтобы получить расчёт для выбранного числа панелей.</p>
-
-    <div id="russia-map" class="russia-map">
-      <svg id="svgmap" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <style>
-          .region { fill:#dcdcdc; stroke:#000; stroke-width:2; cursor:pointer; transition: fill 0.2s ease; }
-          .region:hover { fill:#ffef96; }
-          .region.selected { fill:#ffd65a; }
-          .label { font-family: Arial, sans-serif; font-size:14px; pointer-events:none; }
-        </style>
-
-        <g id="regions">
-          <path class="region" data-region="1" d="M300 220 L420 190 L470 230 L430 280 L350 280 Z" />
-          <path class="region" data-region="2" d="M180 140 L290 120 L310 170 L220 190 Z" />
-          <path class="region" data-region="3" d="M360 320 L460 300 L480 360 L380 380 Z" />
-          <path class="region" data-region="4" d="M420 180 L540 160 L560 210 L460 240 Z" />
-          <path class="region" data-region="5" d="M520 300 L620 280 L640 330 L540 360 Z" />
-          <path class="region" data-region="6" d="M640 180 L760 160 L780 220 L660 240 Z" />
-          <path class="region" data-region="7" d="M700 320 L820 300 L840 360 L720 390 Z" />
-          <path class="region" data-region="8" d="M860 200 L940 180 L960 240 L880 260 Z" />
-        </g>
-
-        <text x="370" y="250" class="label">Центральный</text>
-        <text x="220" y="150" class="label">С.-Запад</text>
-        <text x="400" y="350" class="label">Южный</text>
-        <text x="480" y="200" class="label">Северо-Кавказ</text>
-        <text x="560" y="320" class="label">Приволжский</text>
-        <text x="700" y="200" class="label">Уральский</text>
-        <text x="760" y="350" class="label">Сибирский</text>
-        <text x="900" y="220" class="label">ДВ</text>
-      </svg>
-    </div>
-  </div>
-</section>
+    <div id="map"></div>
+     </div>
+    </section>
 
     <!-- Правая колонка -->
     <section class="results">
       <h2>💰 Расчет эффективности</h2>
       <div id="results-display">
         <p><strong>Общая мощность:</strong> <span id="total-power">0</span> Вт</p>
-        <p><strong>Годовая выработка:</strong> <span id="yearly-generation">0</span> кВт·ч/год</p>
-        <p><strong>Экономия/Прибыль:</strong> <span id="yearly-savings">0</span> руб/год</p>
-        <p><strong>Срок окупаемости:</strong> <span id="payback-period">N/A</span></p> 
-        <h3>🔥 Сравнение при высокой температуре:</h3>
         <div id="comparison-output"></div>
       </div>
     </section>
@@ -136,8 +113,8 @@
   });
 </script>
 </body>
-
 </html>
+
 
 
 
