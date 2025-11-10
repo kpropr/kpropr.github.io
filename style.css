@@ -212,3 +212,8 @@ body, header, .navbar, main, footer,
     max-width: 100%;
   }
 }
+.maplibregl-popup {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
