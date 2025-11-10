@@ -1,20 +1,15 @@
-// Глобальная переменная для хранения данных из JSON
+// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И НАСТРОЙКИ ===
 let panelData = {};
-let selectedRegion = null;
-
-// Условные данные для расчетов (можно настроить)
-const SIM_HOURS = 1400; // Суммарный Инсоляционный Модуль (эффективные солнечные часы в год)
 const ELECTRICITY_TARIFF = 5.5; // Тариф на электроэнергию (руб/кВт·ч)
 const SYSTEM_LOSS_FACTOR = 0.85; // Коэффициент системных потерь (15%)
 
-// 1. Функция для загрузки данных из JSON
+// === 1. ЗАГРУЗКА ДАННЫХ МОДУЛЕЙ ===
 async function loadPanelData() {
   try {
     const response = await fetch('hevel_modules.json');
     panelData = await response.json();
     console.log("✅ Данные HEVEL успешно загружены.");
-
-    // запускаем первый расчёт только после загрузки данных
+    
     setTimeout(() => {
       calculateAndDisplay();
     }, 300);
@@ -23,17 +18,231 @@ async function loadPanelData() {
   }
 }
 
-// 2. Основная функция для расчета и обновления интерфейса
-// Теперь принимает optional pvout и regionName (если выбрали регион)
+// === 2. ОСНОВНАЯ ФУНКЦИЯ РАСЧЕТА ===
 function calculateAndDisplay(customPvout = null, regionName = null) {
-  // Проверка: данные панели должны быть загружены
   if (!panelData || Object.keys(panelData).length === 0) {
     console.warn("Данные panelData ещё не загружены — расчёт отложен.");
     return;
   }
 
-  // Элементы UI
-  const modelSelect = document.getElementById('panel-model');
+  // --- Считывание данных из UI ---
+  const countInput = document.getElementById('count');
+  const areaInput = document.getElementById('area');
+  const countValueDisplay = document.getElementById('count-value');
+  const areaValueDisplay = document.getElementById('area-value');
+
+  if (!countInput) return;
+
+  const selectedModelId = 'HVL-450-HJT'; 
+  let count = parseInt(countInput.value, 10) || 0;
+  const area = parseFloat(areaInput?.value || 0);
+
+  const module = panelData[selectedModelId];
+  if (!module) {
+    console.warn("Модель панели не найдена:", selectedModelId);
+    return;
+  }
+
+  // --- Ограничение по площади ---
+  const PANEL_AREA_M2 = 2.1; 
+  let maxPanels = Infinity;
+  if (area > 0) {
+    maxPanels = Math.floor(area / PANEL_AREA_M2);
+    if (maxPanels < 1) maxPanels = 0;
+    try {
+      countInput.max = maxPanels;
+    } catch (e) {}
+    if (count > maxPanels) {
+      count = maxPanels;
+      countInput.value = count;
+    }
+  }
+  if (countValueDisplay) countValueDisplay.textContent = count;
+  if (areaValueDisplay) areaValueDisplay.textContent = area ? `${area} м²` : '—';
+
+  // --- Базовый расчет мощности ---
+  const totalPowerKW = (module.max_power * count) / 1000; // кВт
+  const totalPowerEl = document.getElementById('total-power');
+  if (totalPowerEl) totalPowerEl.textContent = totalPowerKW.toFixed(1) + ' кВт';
+
+  const output = document.getElementById('comparison-output');
+
+  // --- Расчет для региона (если выбран) ---
+  if (customPvout !== null && regionName !== null) {
+    const pvout = customPvout;
+    const yearlyGeneration = totalPowerKW * pvout * SYSTEM_LOSS_FACTOR;
+    const yearlySavings = yearlyGeneration * ELECTRICITY_TARIFF;
+    const totalSystemCost = (module.price_rub || 0) * count;
+    const paybackPeriod = yearlySavings > 0 ? totalSystemCost / yearlySavings : 'N/A';
+
+    if (output) {
+      output.innerHTML = `
+        <h3>${regionName}</h3>
+        <p>Инсоляция (PVOUT): ${pvout} кВт·ч/кВтp/год</p>
+        <p><strong>Выработка:</strong> ${Math.round(yearlyGeneration).toLocaleString('ru-RU')} кВт·ч</p>
+        <p><strong>Экономия:</strong> ${Math.round(yearlySavings).toLocaleString('ru-RU')} ₽/год</p>
+        <p><strong>Окупаемость:</strong> ${typeof paybackPeriod === 'number' ? paybackPeriod.toFixed(1) + ' лет' : '—'}</p>
+      `;
+    }
+  } else {
+    // --- Если регион НЕ выбран ---
+    if (output) {
+      output.innerHTML = `
+        <p style="opacity:0.8; font-style:italic; color:#777;">
+          🗺️ Пожалуйста, выберите область на карте, чтобы рассчитать показатели.
+        </p>
+      `;
+    }
+  }
+}
+
+// === 3. ОБРАБОТЧИКИ СОБЫТИЙ (СЛАЙДЕРЫ) ===
+document.addEventListener('DOMContentLoaded', () => {
+    loadPanelData();
+    console.log("📂 Загружаем данные панелей...");
+
+    const setupInputListeners = (id, valueDisplayId) => {
+        const inputElement = document.getElementById(id);
+        const displayElement = document.getElementById(valueDisplayId);
+
+        if (inputElement && displayElement) {
+             if (id === 'area') {
+                displayElement.textContent = inputElement.value ? `${inputElement.value} м²` : '—';
+             } else {
+                displayElement.textContent = inputElement.value; 
+             }
+             
+             inputElement.addEventListener('input', (e) => {
+                if (id === 'area') {
+                    displayElement.textContent = e.target.value ? `${e.target.value} м²` : '—';
+                } else {
+                    displayElement.textContent = e.target.value;
+                }
+                calculateAndDisplay(); 
+             });
+        }
+    };
+
+    setupInputListeners('count', 'count-value');
+    setupInputListeners('area', 'area-value');
+
+    ['count', 'area'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => calculateAndDisplay());
+      el.addEventListener('change', () => calculateAndDisplay());
+    });
+});
+
+// === 4. ГЛОБУС MAPLIBRE ===
+document.addEventListener('DOMContentLoaded', () => {
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {
+        osm: {
+          type: 'raster',
+          tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution: '&copy; OpenStreetMap contributors'
+        }
+      },
+      layers: [
+        {
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': '#aee0ff' } 
+        },
+        {
+          id: 'osm-layer',
+          type: 'raster',
+          source: 'osm'
+        }
+      ]
+    },
+    center: [105, 63],
+    zoom: 2.5,
+    projection: 'globe' 
+  });
+
+  // --- Настройка атмосферы ---
+  map.on('style.load', () => {
+    if (map.setFog) {
+      map.setFog({
+        color: 'rgba(255,255,255,0)', 
+        'space-color': 'rgb(5,5,15)', 
+        'horizon-blend': 0.05 
+      });
+    }
+  });
+
+  // --- Загрузка GeoJSON регионов ---
+  fetch('russia_regions.geojson') 
+    .then(res => res.json())
+    .then(data => {
+      map.addSource('russia', { type: 'geojson', data });
+
+      map.addLayer({
+        id: 'russia-fill',
+        type: 'fill',
+        source: 'russia',
+        paint: {
+          'fill-color': '#b8d8ff',
+          'fill-opacity': 0.6
+        }
+      });
+
+      map.addLayer({
+        id: 'russia-borders',
+        type: 'line',
+        source: 'russia',
+        paint: {
+          'line-color': '#333',
+          'line-width': 1
+        }
+      });
+
+      // --- Интерактивность карты ---
+      map.on('mousemove', 'russia-fill', (e) => {
+        map.getCanvas().style.cursor = e.features.length ? 'pointer' : '';
+      });
+      map.on('mouseleave', 'russia-fill', () => {
+        map.getCanvas().style.cursor = '';
+      });
+
+      map.on('click', 'russia-fill', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        
+        const props = e.features[0].properties;
+        const regionName = props.name;
+        const pvout = props.pvout;
+
+        map.setPaintProperty('russia-fill', 'fill-color', [
+          'match',
+          ['get', 'name'],
+          regionName, '#ffd700', 
+          '#b8d8ff' 
+        ]);
+
+        map.flyTo({
+          center: e.lngLat,
+          zoom: 3.8,
+          speed: 0.6,
+          curve: 1.2
+        });
+
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`<b>${regionName}</b><br>PVOUT: ${pvout} кВт·ч/кВтp/год`)
+          .addTo(map);
+
+        // Запуск расчета с данными региона
+        calculateAndDisplay(pvout, regionName);
+      });
+    })
+    .catch(err => console.error("Ошибка загрузки карты:", err));
+});
   const countInput = document.getElementById('count');
   const areaInput = document.getElementById('area'); // новый input площади
   const countValueDisplay = document.getElementById('count-value');
@@ -328,4 +537,5 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => console.error("Ошибка загрузки карты:", err));
 });
+
 
