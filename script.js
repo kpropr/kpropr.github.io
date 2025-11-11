@@ -25,7 +25,6 @@ async function loadPanelData() {
 }
 
 // === 2. ОСНОВНАЯ ФУНКЦИЯ РАСЧЕТА ===
-// ❗️ (Функция изменена: больше не принимает аргументы, использует selectedRegionData)
 function calculateAndDisplay() {
   if (!panelData || Object.keys(panelData).length === 0) {
     console.warn("Данные panelData ещё не загружены — расчёт отложен.");
@@ -82,15 +81,18 @@ function calculateAndDisplay() {
   const output = document.getElementById('comparison-output');
   if (!output) return;
 
-  // --- ❗️ ИЗМЕНЕНО: Расчет для региона (если он "запомнен") ---
+  // --- Расчет для региона (если он "запомнен") ---
   if (selectedRegionData.pvout !== null && selectedRegionData.name !== null) {
     const pvout = selectedRegionData.pvout;
     const regionName = selectedRegionData.name;
     
-    const yearlyGeneration = totalPowerKW * pvout * SYSTEM_LOSS_FACTOR;
+    // Убедимся, что pvout является числом перед расчетом
+    const pvoutNum = parseFloat(pvout);
+    
+    const yearlyGeneration = totalPowerKW * pvoutNum * SYSTEM_LOSS_FACTOR;
     const yearlySavings = yearlyGeneration * ELECTRICITY_TARIFF;
     const totalSystemCost = (module.price_rub || 0) * count;
-    const paybackPeriod = yearlySavings > 0 ? totalSystemCost / yearlySavings : 'N/A';
+    const paybackPeriod = yearlySavings > 0 ? totalSystemCost / yearlySavings : '—';
 
     output.innerHTML = `
         <h3>${regionName}</h3>
@@ -121,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (inputElement && displayElement) {
              if (id === 'area') {
-                // (area-value нет в HTML)
+                // ...
              } else {
                 displayElement.textContent = inputElement.value; 
              }
@@ -132,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     if (displayElement) displayElement.textContent = e.target.value;
                 }
-                // ❗️ Теперь этот вызов корректно подхватит 'selectedRegionData'
                 calculateAndDisplay(); 
              });
         } else if (inputElement) {
@@ -144,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     setupInputListeners('count', 'count-value');
-    setupInputListeners('area', 'area-value'); // 'area-value' нет в HTML, но код не сломается
+    setupInputListeners('area', 'area-value'); 
     
     const areaInput = document.getElementById('area');
     if (areaInput) {
@@ -152,119 +153,104 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// === 4. ГЛОБУС MAPLIBRE ===
+// === 4. 3D ГЛОБУС CESIUMJS ===
 document.addEventListener('DOMContentLoaded', () => {
-  const map = new maplibregl.Map({
-    container: 'map',
-    style: {
-      version: 8,
-      sources: {
-        osm: {
-          type: 'raster',
-          tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          tileSize: 256,
-          attribution: '&copy; OpenStreetMap contributors'
-        }
-      },
-      layers: [
-        {
-          id: 'background',
-          type: 'background',
-          paint: { 'background-color': '#aee0ff' } 
-        },
-        {
-          id: 'osm-layer',
-          type: 'raster',
-          source: 'osm'
-        }
-      ]
-    },
-    center: [105, 63], 
-    zoom: 1.8, // ❗️ (Зум чуть уменьшен, чтобы было видно, что это сфера)
-    projection: 'globe' // 🌍 <-- Эта строка делает 3D-сферу
-  });
+    // Cesium.ION_DEFAULT_ACCESS_TOKEN = 'your_token_if_needed'; // Если используете Ion Assets
 
-  // --- Настройка атмосферы ---
-  map.on('style.load', () => {
-    if (map.setFog) { 
-      map.setFog({
-        color: 'rgba(255,255,255,0)', 
-        'space-color': 'rgb(5,5,15)', 
-        'horizon-blend': 0.05 
-      });
-    }
-  });
+    // 1. Инициализация 3D-вьювера в контейнере с ID 'map'
+    const viewer = new Cesium.Viewer('map', {
+        // Настройки для темного/черного глобуса
+        imageryProvider: false, // Отключаем стандартные тайлы (чтобы глобус был черный)
+        baseLayerPicker: false, // Отключаем виджет выбора слоев
+        geocoder: false,
+        homeButton: false,
+        sceneModePicker: false,
+        navigationHelpButton: false,
+        animation: false,
+        timeline: false
+    });
+    
+    // Дополнительные настройки для "космического" темного вида
+    viewer.scene.backgroundColor = Cesium.Color.BLACK;
+    viewer.scene.globe.baseColor = Cesium.Color.BLACK;
+    viewer.scene.skyBox.show = false;
+    viewer.scene.sun.show = false;
+    viewer.scene.moon.show = false;
 
-  // --- Загрузка GeoJSON регионов ---
-  fetch('russia_regions.geojson') 
-    .then(res => res.json())
-    .then(data => {
-      map.addSource('russia', { type: 'geojson', data });
+    // Опционально: Используем темные OSM тайлы, если нужны контуры стран (внешний сервис)
+    viewer.imageryLayers.removeAll();
+    viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+        url: 'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        credit: 'CartoDB Dark Matter, OpenStreetMap'
+    }));
 
-      map.addLayer({
-        id: 'russia-fill',
-        type: 'fill',
-        source: 'russia',
-        paint: {
-          'fill-color': '#b8d8ff', 
-          'fill-opacity': 0.6
-        }
-      });
+    // 2. Установка начального вида на Россию
+    viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(105, 60, 10000000)
+    });
 
-      map.addLayer({
-        id: 'russia-borders',
-        type: 'line',
-        source: 'russia',
-        paint: {
-          'line-color': '#333', 
-          'line-width': 1
-        }
-      });
+    let russiaDataSource = null;
+    
+    // 3. Загрузка GeoJSON регионов
+    const geoJsonPromise = Cesium.GeoJsonDataSource.load('russia_regions.geojson', {
+        stroke: Cesium.Color.WHITE, // Границы
+        fill: Cesium.Color.DARKGREY.withAlpha(0.5), // Заливка
+        strokeWidth: 2,
+        clampToGround: true // Прижать к глобусу
+    });
 
-      // --- Интерактивность карты ---
-      map.on('mousemove', 'russia-fill', (e) => {
-        map.getCanvas().style.cursor = e.features.length ? 'pointer' : '';
-      });
-      map.on('mouseleave', 'russia-fill', () => {
-        map.getCanvas().style.cursor = '';
-      });
+    geoJsonPromise.then(dataSource => {
+        viewer.dataSources.add(dataSource);
+        russiaDataSource = dataSource;
 
-      // ❗️ (Обработчик клика ИЗМЕНЕН)
-      map.on('click', 'russia-fill', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        
-        const props = e.features[0].properties;
-        
-        // 1. Сохраняем данные в глобальную переменную
-        selectedRegionData.name = props.name;
-        selectedRegionData.pvout = props.pvout;
+        const entities = dataSource.entities.values;
 
-        // 2. Перекрашиваем регион
-        map.setPaintProperty('russia-fill', 'fill-color', [
-          'match',
-          ['get', 'name'],
-          props.name, '#ffd700', 
-          '#b8d8ff' 
-        ]);
+        // 4. Обработчик клика (Picking)
+        const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+        handler.setInputAction((click) => {
+            const pickedObject = viewer.scene.pick(click.position);
 
-        // 3. Приближаемся
-        map.flyTo({
-          center: e.lngLat,
-          zoom: 3.8,
-          speed: 0.6,
-          curve: 1.2
-        });
+            // Сброс всех регионов к исходному цвету
+            entities.forEach((e) => {
+                if (e.polygon) {
+                    e.polygon.material = Cesium.Color.DARKGREY.withAlpha(0.5);
+                }
+            });
+            
+            // Если попали в объект (регион)
+            if (Cesium.defined(pickedObject) && Cesium.defined(pickedObject.id) && pickedObject.id.polygon) {
+                const entity = pickedObject.id;
 
-        // 4. Показываем Pop-up
-        new maplibregl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(`<b>${props.name}</b><br>PVOUT: ${props.pvout} кВт·ч/кВтp/год`)
-          .addTo(map);
+                if (entity.properties && entity.properties.name) {
+                    const props = entity.properties;
+                    // Данные GeoJSON в Cesium оборачиваются в Property, нужно получить значение
+                    const regionName = props.name.getValue();
+                    const pvoutValue = props.pvout ? props.pvout.getValue() : null;
 
-        // 5. Запускаем расчет (он сам найдет данные в selectedRegionData)
-        calculateAndDisplay();
-      });
-    })
-    .catch(err => console.error("Ошибка загрузки карты:", err));
+                    // 1. Сохраняем данные
+                    selectedRegionData.name = regionName;
+                    selectedRegionData.pvout = pvoutValue;
+
+                    // 2. Выделяем выбранный регион
+                    entity.polygon.material = Cesium.Color.GOLD.withAlpha(0.8);
+
+                    // 3. Приближаемся к региону
+                    viewer.flyTo(entity, {
+                        duration: 1.5
+                    });
+
+                    // 4. Запускаем расчет
+                    calculateAndDisplay();
+                }
+            } else {
+                 // Клик мимо региона - сброс выбора
+                 selectedRegionData.name = null;
+                 selectedRegionData.pvout = null;
+                 calculateAndDisplay();
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    }).catch(error => {
+        console.error("Ошибка загрузки GeoJSON в Cesium:", error);
+    });
 });
-  
