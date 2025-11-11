@@ -3,6 +3,12 @@ let panelData = {};
 const ELECTRICITY_TARIFF = 5.5; // Тариф на электроэнергию (руб/кВт·ч)
 const SYSTEM_LOSS_FACTOR = 0.85; // Коэффициент системных потерь (15%)
 
+// ❗️ Хранилище для выбранного региона (чтобы не сбрасывалось)
+let selectedRegionData = {
+  pvout: null,
+  name: null
+};
+
 // === 1. ЗАГРУЗКА ДАННЫХ МОДУЛЕЙ ===
 async function loadPanelData() {
   try {
@@ -10,8 +16,6 @@ async function loadPanelData() {
     panelData = await response.json();
     console.log("✅ Данные HEVEL успешно загружены.");
     
-    // Запускаем первый расчет только после загрузки данных
-    // Даем небольшую задержку, чтобы UI успел прогрузиться
     setTimeout(() => {
       calculateAndDisplay();
     }, 300);
@@ -21,7 +25,8 @@ async function loadPanelData() {
 }
 
 // === 2. ОСНОВНАЯ ФУНКЦИЯ РАСЧЕТА ===
-function calculateAndDisplay(customPvout = null, regionName = null) {
+// ❗️ (Функция изменена: больше не принимает аргументы, использует selectedRegionData)
+function calculateAndDisplay() {
   if (!panelData || Object.keys(panelData).length === 0) {
     console.warn("Данные panelData ещё не загружены — расчёт отложен.");
     return;
@@ -31,7 +36,6 @@ function calculateAndDisplay(customPvout = null, regionName = null) {
   const countInput = document.getElementById('count');
   const areaInput = document.getElementById('area');
   const countValueDisplay = document.getElementById('count-value');
-  // Важно: в твоем HTML нет 'area-value', поэтому я добавил проверку
   const areaValueDisplay = document.getElementById('area-value'); 
 
   if (!countInput) return;
@@ -53,7 +57,6 @@ function calculateAndDisplay(customPvout = null, regionName = null) {
     maxPanels = Math.floor(area / PANEL_AREA_M2);
     if (maxPanels < 1) maxPanels = 0;
     try {
-      // Обновляем максимум у слайдера
       countInput.max = maxPanels > 0 ? maxPanels : 1; 
     } catch (e) {}
     
@@ -62,14 +65,12 @@ function calculateAndDisplay(customPvout = null, regionName = null) {
       countInput.value = count;
     }
   } else {
-     // Если площадь 0, сбрасываем ограничение слайдера
      try {
-       countInput.max = 50; // Возвращаем к значению по умолчанию из HTML
+       countInput.max = 50; // Сброс на значение по умолчанию
      } catch(e) {}
   }
   
   if (countValueDisplay) countValueDisplay.textContent = count;
-  // Обновляем и отображение площади
   if (areaValueDisplay) areaValueDisplay.textContent = area ? `${area} м²` : '—';
 
 
@@ -79,11 +80,13 @@ function calculateAndDisplay(customPvout = null, regionName = null) {
   if (totalPowerEl) totalPowerEl.textContent = totalPowerKW.toFixed(1) + ' кВт';
 
   const output = document.getElementById('comparison-output');
-  if (!output) return; // Выходим, если нет блока результатов
+  if (!output) return;
 
-  // --- Расчет для региона (если выбран) ---
-  if (customPvout !== null && regionName !== null) {
-    const pvout = customPvout;
+  // --- ❗️ ИЗМЕНЕНО: Расчет для региона (если он "запомнен") ---
+  if (selectedRegionData.pvout !== null && selectedRegionData.name !== null) {
+    const pvout = selectedRegionData.pvout;
+    const regionName = selectedRegionData.name;
+    
     const yearlyGeneration = totalPowerKW * pvout * SYSTEM_LOSS_FACTOR;
     const yearlySavings = yearlyGeneration * ELECTRICITY_TARIFF;
     const totalSystemCost = (module.price_rub || 0) * count;
@@ -109,35 +112,31 @@ function calculateAndDisplay(customPvout = null, regionName = null) {
 
 // === 3. ОБРАБОТЧИКИ СОБЫТИЙ (СЛАЙДЕРЫ) ===
 document.addEventListener('DOMContentLoaded', () => {
-    // Загружаем данные JSON при старте
     loadPanelData();
     console.log("📂 Загружаем данные панелей...");
 
-    // Настраиваем слушателей на инпуты
     const setupInputListeners = (id, valueDisplayId) => {
         const inputElement = document.getElementById(id);
         const displayElement = document.getElementById(valueDisplayId);
 
         if (inputElement && displayElement) {
-             // Инициализация отображаемого значения
              if (id === 'area') {
-                // В HTML нет area-value, этот код может не сработать
-                // displayElement.textContent = inputElement.value ? `${inputElement.value} м²` : '—';
+                // (area-value нет в HTML)
              } else {
                 displayElement.textContent = inputElement.value; 
              }
              
-             // Слушатель 'input' для мгновенного отклика
              inputElement.addEventListener('input', (e) => {
                 if (id === 'area') {
-                    // if (displayElement) displayElement.textContent = e.target.value ? `${e.target.value} м²` : '—';
+                    // ...
                 } else {
                     if (displayElement) displayElement.textContent = e.target.value;
                 }
+                // ❗️ Теперь этот вызов корректно подхватит 'selectedRegionData'
                 calculateAndDisplay(); 
              });
         } else if (inputElement) {
-             // Если есть инпут, но нет дисплея для значения (как 'area')
+             // Слушатель для инпутов без 'valueDisplay' (как 'area')
              inputElement.addEventListener('input', () => {
                 calculateAndDisplay();
              });
@@ -147,8 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupInputListeners('count', 'count-value');
     setupInputListeners('area', 'area-value'); // 'area-value' нет в HTML, но код не сломается
     
-    // Добавим слушателей и на 'change' для 'area',
-    // т.к. 'input' для type=number может срабатывать не во всех браузерах
     const areaInput = document.getElementById('area');
     if (areaInput) {
         areaInput.addEventListener('change', () => calculateAndDisplay());
@@ -173,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
           id: 'background',
           type: 'background',
-          paint: { 'background-color': '#aee0ff' } // Цвет океана
+          paint: { 'background-color': '#aee0ff' } 
         },
         {
           id: 'osm-layer',
@@ -182,18 +179,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       ]
     },
-    center: [105, 63], // Центр на России
-    zoom: 2.5,
-    projection: 'globe' // 🌍 <--- ВОТ ЭТА СТРОКА ДЕЛАЕТ ГЛОБУС
+    center: [105, 63], 
+    zoom: 1.8, // ❗️ (Зум чуть уменьшен, чтобы было видно, что это сфера)
+    projection: 'globe' // 🌍 <-- Эта строка делает 3D-сферу
   });
 
   // --- Настройка атмосферы ---
   map.on('style.load', () => {
-    if (map.setFog) { // setFog доступен в новых версиях MapLibre
+    if (map.setFog) { 
       map.setFog({
-        color: 'rgba(255,255,255,0)', // Прозрачный туман на земле
-        'space-color': 'rgb(5,5,15)', // Цвет космоса
-        'horizon-blend': 0.05 // Плавность перехода к горизонту
+        color: 'rgba(255,255,255,0)', 
+        'space-color': 'rgb(5,5,15)', 
+        'horizon-blend': 0.05 
       });
     }
   });
@@ -204,53 +201,53 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       map.addSource('russia', { type: 'geojson', data });
 
-      // Слой заливки регионов
       map.addLayer({
         id: 'russia-fill',
         type: 'fill',
         source: 'russia',
         paint: {
-          'fill-color': '#b8d8ff', // Базовый цвет регионов
+          'fill-color': '#b8d8ff', 
           'fill-opacity': 0.6
         }
       });
 
-      // Слой границ регионов
       map.addLayer({
         id: 'russia-borders',
         type: 'line',
         source: 'russia',
         paint: {
-          'line-color': '#333', // Цвет границ
+          'line-color': '#333', 
           'line-width': 1
         }
       });
 
       // --- Интерактивность карты ---
       map.on('mousemove', 'russia-fill', (e) => {
-        // Меняем курсор на "руку" при наведении
         map.getCanvas().style.cursor = e.features.length ? 'pointer' : '';
       });
       map.on('mouseleave', 'russia-fill', () => {
         map.getCanvas().style.cursor = '';
       });
 
+      // ❗️ (Обработчик клика ИЗМЕНЕН)
       map.on('click', 'russia-fill', (e) => {
         if (!e.features || e.features.length === 0) return;
         
         const props = e.features[0].properties;
-        const regionName = props.name;
-        const pvout = props.pvout;
+        
+        // 1. Сохраняем данные в глобальную переменную
+        selectedRegionData.name = props.name;
+        selectedRegionData.pvout = props.pvout;
 
-        // Перекрашиваем выбранный регион
+        // 2. Перекрашиваем регион
         map.setPaintProperty('russia-fill', 'fill-color', [
           'match',
           ['get', 'name'],
-          regionName, '#ffd700', // Выбранный регион - золотой
-          '#b8d8ff' // Остальные - по умолчанию
+          props.name, '#ffd700', 
+          '#b8d8ff' 
         ]);
 
-        // "Прилетаем" к региону
+        // 3. Приближаемся
         map.flyTo({
           center: e.lngLat,
           zoom: 3.8,
@@ -258,14 +255,14 @@ document.addEventListener('DOMContentLoaded', () => {
           curve: 1.2
         });
 
-        // Показываем Pop-up
+        // 4. Показываем Pop-up
         new maplibregl.Popup()
           .setLngLat(e.lngLat)
-          .setHTML(`<b>${regionName}</b><br>PVOUT: ${pvout} кВт·ч/кВтp/год`)
+          .setHTML(`<b>${props.name}</b><br>PVOUT: ${props.pvout} кВт·ч/кВтp/год`)
           .addTo(map);
 
-        // Запуск расчета с данными региона
-        calculateAndDisplay(pvout, regionName);
+        // 5. Запускаем расчет (он сам найдет данные в selectedRegionData)
+        calculateAndDisplay();
       });
     })
     .catch(err => console.error("Ошибка загрузки карты:", err));
