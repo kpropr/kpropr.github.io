@@ -1,21 +1,19 @@
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И НАСТРОЙКИ ===
+// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ===
 let panelData = {};
-const ELECTRICITY_TARIFF = 5.5; // Тариф на электроэнергию (руб/кВт·ч)
-const SYSTEM_LOSS_FACTOR = 0.85; // Коэффициент системных потерь (15%)
+const ELECTRICITY_TARIFF = 5.5; 
+const SYSTEM_LOSS_FACTOR = 0.85; 
 
-// ❗️ Хранилище для выбранного региона (чтобы не сбрасывалось)
+// Хранилище для данных выбранного региона
 let selectedRegionData = {
   pvout: null,
   name: null
 };
 
-// === 1. ЗАГРУЗКА ДАННЫХ МОДУЛЕЙ ===
+// === БЛОК 1: ЗАГРУЗКА ДАННЫХ МОДУЛЕЙ HEVEL ===
 async function loadPanelData() {
   try {
     const response = await fetch('hevel_modules.json');
     panelData = await response.json();
-    console.log("✅ Данные HEVEL успешно загружены.");
-    
     setTimeout(() => {
       calculateAndDisplay();
     }, 300);
@@ -24,14 +22,10 @@ async function loadPanelData() {
   }
 }
 
-// === 2. ОСНОВНАЯ ФУНКЦИЯ РАСЧЕТА ===
+// === БЛОК 2: ОСНОВНАЯ ФУНКЦИЯ РАСЧЕТА ===
 function calculateAndDisplay() {
-  if (!panelData || Object.keys(panelData).length === 0) {
-    console.warn("Данные panelData ещё не загружены — расчёт отложен.");
-    return;
-  }
+  if (!panelData || Object.keys(panelData).length === 0) return;
 
-  // --- Считывание данных из UI ---
   const countInput = document.getElementById('count');
   const areaInput = document.getElementById('area');
   const countValueDisplay = document.getElementById('count-value');
@@ -44,12 +38,9 @@ function calculateAndDisplay() {
   const area = parseFloat(areaInput?.value || 0);
 
   const module = panelData[selectedModelId];
-  if (!module) {
-    console.warn("Модель панели не найдена:", selectedModelId);
-    return;
-  }
+  if (!module) return;
 
-  // --- Ограничение по площади ---
+  // Ограничение по площади
   const PANEL_AREA_M2 = 2.1; 
   let maxPanels = Infinity;
   if (area > 0) {
@@ -65,28 +56,25 @@ function calculateAndDisplay() {
     }
   } else {
      try {
-       countInput.max = 50; // Сброс на значение по умолчанию
+       countInput.max = 50; 
      } catch(e) {}
   }
   
   if (countValueDisplay) countValueDisplay.textContent = count;
   if (areaValueDisplay) areaValueDisplay.textContent = area ? `${area} м²` : '—';
 
-
-  // --- Базовый расчет мощности ---
-  const totalPowerKW = (module.max_power * count) / 1000; // кВт
+  // Расчет мощности
+  const totalPowerKW = (module.max_power * count) / 1000;
   const totalPowerEl = document.getElementById('total-power');
   if (totalPowerEl) totalPowerEl.textContent = totalPowerKW.toFixed(1) + ' кВт';
 
   const output = document.getElementById('comparison-output');
   if (!output) return;
 
-  // --- Расчет для региона (если он "запомнен") ---
+  // Расчет для выбранного региона
   if (selectedRegionData.pvout !== null && selectedRegionData.name !== null) {
     const pvout = selectedRegionData.pvout;
     const regionName = selectedRegionData.name;
-    
-    // Убедимся, что pvout является числом перед расчетом
     const pvoutNum = parseFloat(pvout);
     
     const yearlyGeneration = totalPowerKW * pvoutNum * SYSTEM_LOSS_FACTOR;
@@ -103,7 +91,7 @@ function calculateAndDisplay() {
       `;
     
   } else {
-    // --- Если регион НЕ выбран ---
+    // Если регион НЕ выбран
     output.innerHTML = `
         <p style="opacity:0.8; font-style:italic; color:#777;">
           🗺️ Пожалуйста, выберите область на карте, чтобы рассчитать показатели.
@@ -111,101 +99,103 @@ function calculateAndDisplay() {
       `;
   }
 }
-
-// === 3. ОБРАБОТЧИКИ СОБЫТИЙ (СЛАЙДЕРЫ) ===
+// === БЛОК 3: ОБРАБОТЧИКИ UI (слайдеры) ===
 document.addEventListener('DOMContentLoaded', () => {
     loadPanelData();
-    console.log("📂 Загружаем данные панелей...");
 
     const setupInputListeners = (id, valueDisplayId) => {
         const inputElement = document.getElementById(id);
         const displayElement = document.getElementById(valueDisplayId);
 
-        if (inputElement && displayElement) {
-             if (id === 'area') {
-                // ...
-             } else {
-                displayElement.textContent = inputElement.value; 
-             }
+        if (inputElement) {
+             if (displayElement) displayElement.textContent = inputElement.value;
              
-             inputElement.addEventListener('input', (e) => {
-                if (id === 'area') {
-                    // ...
-                } else {
-                    if (displayElement) displayElement.textContent = e.target.value;
-                }
+             inputElement.addEventListener('input', () => {
+                if (displayElement) displayElement.textContent = inputElement.value;
                 calculateAndDisplay(); 
              });
-        } else if (inputElement) {
-             // Слушатель для инпутов без 'valueDisplay' (как 'area')
-             inputElement.addEventListener('input', () => {
-                calculateAndDisplay();
-             });
+             if (id === 'area') {
+                 inputElement.addEventListener('change', () => calculateAndDisplay());
+             }
         }
     };
 
     setupInputListeners('count', 'count-value');
     setupInputListeners('area', 'area-value'); 
-    
-    const areaInput = document.getElementById('area');
-    if (areaInput) {
-        areaInput.addEventListener('change', () => calculateAndDisplay());
-    }
 });
 
-// === 4. 3D ГЛОБУС CESIUMJS ===
+// === БЛОК 4: 3D ГЛОБУС CESIUMJS И ИНТЕРАКТИВНОСТЬ ===
 document.addEventListener('DOMContentLoaded', () => {
-    // Cesium.ION_DEFAULT_ACCESS_TOKEN = 'your_token_if_needed'; // Если используете Ion Assets
-
-    // 1. Инициализация 3D-вьювера в контейнере с ID 'map'
+    // 1. Инициализация 3D-вьювера с отключением всех виджетов
     const viewer = new Cesium.Viewer('map', {
-        // Настройки для темного/черного глобуса
-        imageryProvider: false, // Отключаем стандартные тайлы (чтобы глобус был черный)
-        baseLayerPicker: false, // Отключаем виджет выбора слоев
-        geocoder: false,
-        homeButton: false,
-        sceneModePicker: false,
-        navigationHelpButton: false,
-        animation: false,
-        timeline: false
+        imageryProvider: false,
+        baseLayerPicker: false, 
+        geocoder: false,             
+        homeButton: false,           
+        sceneModePicker: false,      
+        navigationHelpButton: false, 
+        animation: false,            
+        timeline: false,             
+        infoBox: false,              
+        selectionIndicator: false,   
+        fullscreenButton: false      
     });
+    // 🟢 НОВЫЕ НАСТРОЙКИ НАВИГАЦИИ
+
+    // 1. Ограничиваем высоту камеры (в метрах)
+    // Мин. высота 100 км, Макс. высота 20 000 км
+    viewer.scene.screenSpaceCameraController.minimumZoomDistance = 100000;
+    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 20000000;
+
+    // 2. Снижаем чувствительность вращения/перемещения (меньше = медленнее)
+    // Значение по умолчанию обычно 3.0
+    viewer.scene.screenSpaceCameraController.rotateEventMask = Cesium.ScreenSpaceEventType.LEFT_DOWN;
+    viewer.scene.screenSpaceCameraController.rotateEventMask = Cesium.ScreenSpaceEventType.LEFT_DOWN;
+    viewer.scene.screenSpaceCameraController.zoomEventMask = Cesium.ScreenSpaceEventType.RIGHT_DOWN;
     
-    // Дополнительные настройки для "космического" темного вида
+    // Снижение множителя скорости вращения/масштабирования (по умолчанию: 1.0)
+    viewer.scene.screenSpaceCameraController.enableTilt = true; // Разрешаем наклон
+    viewer.scene.screenSpaceCameraController.tiltEventMask = [Cesium.ScreenSpaceEventType.MIDDLE_DOWN, Cesium.ScreenSpaceEventType.PINCH];
+    viewer.scene.screenSpaceCameraController.constrainedZAxis = false;
+    viewer.scene.screenSpaceCameraController.enableCollisionDetection = false; // Отключаем, чтобы камера не "прыгала"
+
+    // 3. Устанавливаем инерцию для более плавного движения
+    viewer.scene.screenSpaceCameraController.inertiaSpin = 0.5; // Снижаем инерцию
+    viewer.scene.screenSpaceCameraController.inertiaTranslate = 0.5;
+    viewer.scene.screenSpaceCameraController.inertiaZoom = 0.5;
+
+    // Настройки для черного/темного глобуса
     viewer.scene.backgroundColor = Cesium.Color.BLACK;
     viewer.scene.globe.baseColor = Cesium.Color.BLACK;
-    viewer.scene.skyBox.show = false;
+    viewer.scene.skyBox.show = false; 
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
 
-    // Опционально: Используем темные OSM тайлы, если нужны контуры стран (внешний сервис)
+    // Используем темные тайлы CartoDB Dark Matter для контуров стран
     viewer.imageryLayers.removeAll();
     viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
         url: 'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
         credit: 'CartoDB Dark Matter, OpenStreetMap'
     }));
 
-    // 2. Установка начального вида на Россию
+    // Установка начального вида на Россию
     viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(105, 60, 10000000)
     });
 
-    let russiaDataSource = null;
-    
-    // 3. Загрузка GeoJSON регионов
+    // 2. Загрузка GeoJSON регионов
     const geoJsonPromise = Cesium.GeoJsonDataSource.load('russia_regions.geojson', {
-        stroke: Cesium.Color.WHITE, // Границы
-        fill: Cesium.Color.DARKGREY.withAlpha(0.5), // Заливка
+        stroke: Cesium.Color.WHITE,          // Границы
+        fill: Cesium.Color.DARKGREY.withAlpha(0.5), 
         strokeWidth: 2,
-        clampToGround: true // Прижать к глобусу
+        clampToGround: true
     });
 
     geoJsonPromise.then(dataSource => {
         viewer.dataSources.add(dataSource);
-        russiaDataSource = dataSource;
-
         const entities = dataSource.entities.values;
 
-        // 4. Обработчик клика (Picking)
+        // 3. Обработчик клика
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((click) => {
             const pickedObject = viewer.scene.pick(click.position);
@@ -216,30 +206,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.polygon.material = Cesium.Color.DARKGREY.withAlpha(0.5);
                 }
             });
-            
-            // Если попали в объект (регион)
+            // Если попали в регион
             if (Cesium.defined(pickedObject) && Cesium.defined(pickedObject.id) && pickedObject.id.polygon) {
                 const entity = pickedObject.id;
 
                 if (entity.properties && entity.properties.name) {
                     const props = entity.properties;
-                    // Данные GeoJSON в Cesium оборачиваются в Property, нужно получить значение
                     const regionName = props.name.getValue();
                     const pvoutValue = props.pvout ? props.pvout.getValue() : null;
 
-                    // 1. Сохраняем данные
                     selectedRegionData.name = regionName;
                     selectedRegionData.pvout = pvoutValue;
 
-                    // 2. Выделяем выбранный регион
+                    // Выделяем выбранный регион
                     entity.polygon.material = Cesium.Color.GOLD.withAlpha(0.8);
 
-                    // 3. Приближаемся к региону
+                    // Приближаемся к региону
                     viewer.flyTo(entity, {
                         duration: 1.5
                     });
 
-                    // 4. Запускаем расчет
                     calculateAndDisplay();
                 }
             } else {
