@@ -1,1 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEVEL AR-Solar Design Studio</title>
+    <link rel="stylesheet" href="style.css"> 
+  <!-- маплибре глобус -->
+<link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
+</head>
+<body>
+    <header>
+        <h1>HEVEL AR-Solar Design Studio ☀️</h1>
+    </header>
+    <nav class="navbar">
+  <div class="nav-left">
+    <a href="index.html" class="logo">☀️ HEVEL</a>
+    <ul class="menu" id="menu">
+      <li class="dropdown">
+        <button class="dropbtn">Меню </button>
+        <div class="dropdown-content">
+          <a href="index.html">Визуализация</a>
+          <a href="about.html">О нас</a>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <button id="theme-toggle" class="theme-toggle">🌙</button>
+</nav>
+    
+    <main class="container">
+  <div class="grid-layout">
+    <!-- левая колонка -->
+    <section class="settings">
+      <h2>⚙️ Настройки проекта</h2>
+      <h3>Модель панели:</h3>
+       <p id="panel-model-name"><strong>HEVEL HVL-450/HJT (гетероструктура)</strong></p>
+      <label for="count">Количество модулей: <span id="count-value">10</span></label>
+      <input type="range" id="count" min="1" max="50" value="10">
+
+      <label for="area">Площадь под панели (м²):</label>
+      <input type="number" id="area" min="1" max="1000" value="50">
+    </section>
+    <!-- центр -->    
+    <section class="central-column">
+     <div class="map-section">
+    <h2>🗺️ Карта России — выберите регион</h2>
+    <p>Кликните на область, чтобы получить расчёт для выбранного числа панелей.</p>
+    <div id="map"></div>
+     </div>
+    </section>
+
+    <!-- Правая колонка -->
+    <section class="results">
+      <h2>💰 Расчет эффективности</h2>
+      <div id="results-display">
+        <p><strong>Общая мощность:</strong> <span id="total-power">0</span> Вт</p>
+        <div id="comparison-output"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="script.js"></script> 
+<script>
+  // Ждём, пока DOM загрузится
+  document.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
+
+    if (!themeToggle) return; // Если кнопки нет, ничего не делаем
+
+    // Проверка сохранённой темы при загрузке
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      body.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    } else {
+      body.classList.remove('dark');
+      themeToggle.textContent = '🌙';
+    }
+
+    // Обработчик кнопки переключения
+    themeToggle.addEventListener('click', () => {
+      themeToggle.classList.add('rotate');
+
+      const isDark = !body.classList.contains('dark');
+      body.classList.toggle('dark');
+      themeToggle.textContent = isDark ? '☀️' : '🌙';
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+      setTimeout(() => themeToggle.classList.remove('rotate'), 600);
+    });
+  });
+</script>
+</body>
+</html>
+
+
 
