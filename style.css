@@ -216,4 +216,92 @@ body, header, .navbar, main, footer,
   font-family: Arial, sans-serif;
   font-size: 14px;
 }
+/* --- HERO БЛОК --- */
+.hero {
+  background: linear-gradient(135deg, #0099dd, #0066aa);
+  padding: 80px 20px;
+  text-align: center;
+  color: white;
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: auto;
+}
+
+.hero h1 {
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.hero p {
+  font-size: 20px;
+  opacity: 0.9;
+  margin-bottom: 30px;
+}
+
+.hero-button {
+  display: inline-block;
+  background: #ffcc00;
+  color: #222;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 20px;
+  text-decoration: none;
+  transition: 0.25s ease;
+  font-weight: 600;
+}
+
+.hero-button:hover {
+  background: #ffe680;
+}
+
+/* --- ИНФОРМАЦИОННЫЙ БЛОК --- */
+.info-section {
+  padding: 50px 20px;
+  max-width: 1100px;
+  margin: auto;
+}
+
+.info-section h2 {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 40px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+.info-card {
+  background: var(--bg-panel);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: 0.25s;
+}
+
+.info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+}
+
+.info-card h3 {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+/* Тёмная тема */
+body.dark .hero {
+  background: linear-gradient(135deg, #003355, #001a33);
+}
+
+body.dark .info-card {
+  background: #1c1c1c;
+  box-shadow: 0 2px 8px rgba(255,255,255,0.05);
+}
+
 
