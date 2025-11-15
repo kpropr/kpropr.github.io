@@ -1,3 +1,23 @@
+document.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = document.getElementById("theme-toggle");
+    const body = document.body;
+
+    if (!toggleBtn) return;
+
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) body.classList.toggle("dark", savedTheme === "dark");
+
+    toggleBtn.textContent = body.classList.contains("dark") ? "☀️" : "🌙";
+
+    toggleBtn.addEventListener("click", () => {
+        body.classList.toggle("dark");
+        const isDark = body.classList.contains("dark");
+
+        toggleBtn.textContent = isDark ? "☀️" : "🌙";
+        localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+});
+
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ===
 let panelData = {};
 const ELECTRICITY_TARIFF = 5.5; 
@@ -240,3 +260,4 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Ошибка загрузки GeoJSON в Cesium:", error);
     });
 });
+
