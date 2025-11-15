@@ -64,39 +64,9 @@
 </main>
 
 <script src="script.js"></script> 
-<script>
-  // Ждём, пока DOM загрузится
-  document.addEventListener('DOMContentLoaded', () => {
-    const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
-
-    if (!themeToggle) return; // Если кнопки нет, ничего не делаем
-
-    // Проверка сохранённой темы при загрузке
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      body.classList.add('dark');
-      themeToggle.textContent = '☀️';
-    } else {
-      body.classList.remove('dark');
-      themeToggle.textContent = '🌙';
-    }
-
-    // Обработчик кнопки переключения
-    themeToggle.addEventListener('click', () => {
-      themeToggle.classList.add('rotate');
-
-      const isDark = !body.classList.contains('dark');
-      body.classList.toggle('dark');
-      themeToggle.textContent = isDark ? '☀️' : '🌙';
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-
-      setTimeout(() => themeToggle.classList.remove('rotate'), 600);
-    });
-  });
-</script>
 </body>
 </html>
+
 
 
 
