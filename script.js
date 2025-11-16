@@ -1,30 +1,5 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const toggleBtn = document.getElementById("theme-toggle");
-    const body = document.body;
-
-    if (!toggleBtn) return;
-
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) body.classList.toggle("dark", savedTheme === "dark");
-
-    toggleBtn.textContent = body.classList.contains("dark") ? "☀️" : "🌙";
-
-    toggleBtn.addEventListener("click", () => {
-        body.classList.toggle("dark");
-        const isDark = body.classList.contains("dark");
-
-        toggleBtn.textContent = isDark ? "☀️" : "🌙";
-        localStorage.setItem("theme", isDark ? "dark" : "light");
-    });
-});
-const themeToggle = document.getElementById("themeToggle");
-
-themeToggle.addEventListener("click", () => {
-    document.body.classList.toggle("dark");
-    themeToggle.classList.add("rotate");
-    setTimeout(() => themeToggle.classList.remove("rotate"), 600);
-});
-
+// === БЛОК 1: ЗАГРУЗКА ДАННЫХ МОДУЛЕЙ HEVEL ===
+// (Блоки кода для смены темы удалены)
 
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ===
 let panelData = {};
@@ -269,4 +244,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
+// ЛИШНЯЯ СКОБКА } БЫЛА УДАЛЕНА ОТСЮДА
