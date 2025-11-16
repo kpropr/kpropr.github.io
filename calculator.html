@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HEVEL AR-Solar Design Studio</title>
     <link rel="stylesheet" href="style.css"> 
-  <!-- маплибре глобус -->
-<link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
 </head>
 <body>
@@ -27,12 +26,10 @@
     </ul>
   </div>
 
-  <button id="theme-toggle" class="theme-toggle">🌙</button>
-</nav>
+  </nav>
     
     <main class="container">
   <div class="grid-layout">
-    <!-- левая колонка -->
     <section class="settings">
       <h2>⚙️ Настройки проекта</h2>
       <h3>Модель панели:</h3>
@@ -43,7 +40,6 @@
       <label for="area">Площадь под панели (м²):</label>
       <input type="number" id="area" min="1" max="1000" value="50">
     </section>
-    <!-- центр -->    
     <section class="central-column">
      <div class="map-section">
     <h2>🗺️ Карта России — выберите регион</h2>
@@ -52,7 +48,6 @@
      </div>
     </section>
 
-    <!-- Правая колонка -->
     <section class="results">
       <h2>💰 Расчет эффективности</h2>
       <div id="results-display">
@@ -66,9 +61,3 @@
 <script src="script.js"></script> 
 </body>
 </html>
-
-
-
-
-
-
