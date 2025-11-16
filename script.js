@@ -17,6 +17,14 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("theme", isDark ? "dark" : "light");
     });
 });
+const themeToggle = document.getElementById("themeToggle");
+
+themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    themeToggle.classList.add("rotate");
+    setTimeout(() => themeToggle.classList.remove("rotate"), 600);
+});
+
 
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ===
 let panelData = {};
@@ -260,4 +268,5 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Ошибка загрузки GeoJSON в Cesium:", error);
     });
 });
+
 
