@@ -10,6 +10,38 @@
   --radius: 12px;
   --trans: 0.45s cubic-bezier(.2,.9,.2,1);
 }
+/* FIX NAVBAR LAYOUT */
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav a {
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+
+.nav a:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.brand .logo {
+  font-size: 22px;
+  color: #fff;
+  font-weight: 700;
+}
 
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -242,3 +274,4 @@ body.dark .leaflet-control-coords{background:rgba(10,10,12,0.78);color:#ffd24d;b
   .btn{padding:12px 18px}
   .settings input[type="number"]{width:100%}
 }
+
