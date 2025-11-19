@@ -3,61 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEVEL AR-Solar Design Studio</title>
-    <link rel="stylesheet" href="style.css"> 
-  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
-<script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
+    <title>Калькулятор Солнечной Энергии — HEVEL</title>
+
+    <!-- Leaflet карта -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Основные стили сайта -->
+    <link rel="stylesheet" href="style.css">
+
 </head>
-<body>
-    <header>
-        <h1>HEVEL☀️</h1>
-    </header>
-    <nav class="navbar">
-  <div class="nav-left">
-    <a href="index.html" class="logo">☀️ HEVEL</a>
-    <ul class="menu" id="menu">
-      <li class="dropdown">
-        <button class="dropbtn">Меню </button>
-        <div class="dropdown-content">
-          <a href="index.html">Главная</a>
-          <a href="calculator.html">Расчёт</a>
-        </div>
-      </li>
-    </ul>
-  </div>
-
-  </nav>
     
-    <main class="container">
-  <div class="grid-layout">
+<body>
+
+<header class="topbar">
+  <a href="index.html" class="logo">HEVEL 🌞</a>
+</header>
+
+<!-- ==================== ОСНОВНАЯ СТРАНИЦА ==================== -->
+<div style="height: 20px;"></div>
+<main class="grid-layout">
+
+    <!-- ==================== КОЛОНКА 1 — НАСТРОЙКИ ==================== -->
     <section class="settings">
-      <h2>⚙️ Настройки проекта</h2>
-      <h3>Модель панели:</h3>
-       <p id="panel-model-name"><strong>HEVEL HVL-450/HJT (гетероструктура)</strong></p>
-      <label for="count">Количество модулей: <span id="count-value">10</span></label>
-      <input type="range" id="count" min="1" max="50" value="10">
+        <h2>Настройки</h2>
 
-      <label for="area">Площадь под панели (м²):</label>
-      <input type="number" id="area" min="1" max="1000" value="50">
-    </section>
-    <section class="central-column">
-     <div class="map-section">
-    <h2>🗺️ Карта России — выберите регион</h2>
-    <p>Кликните на область, чтобы получить расчёт для выбранного числа панелей.</p>
-    <div id="map"></div>
-     </div>
+        <!-- Место установки -->
+        <div id="install-type">
+            <p><strong>Место установки:</strong></p>
+            <label><input type="radio" name="install" value="roof" checked> Кровля</label><br>
+            <label><input type="radio" name="install" value="ground"> Земля</label>
+        </div>
+
+        <!-- Площадь -->
+        <p style="margin-top:15px"><strong>Доступная площадь (м²):</strong></p>
+        <input type="number" id="panelArea" min="0" placeholder="Напр. 50">
+
+        <!-- Приборы -->
+        <p style="margin-top:20px"><strong>Ваши электроприборы:</strong></p>
+        <div id="appliances"></div>
+
+        <!-- Тариф -->
+        <p style="margin-top:20px"><strong>Ваш тариф (₽/кВт·ч):</strong></p>
+        <input type="number" id="tariff" min="0" step="0.1" placeholder="Напр. 5.5">
+
+        <p style="margin-top:20px;font-size:14px;opacity:0.7;">
+            * Выберите регион на карте справа, чтобы использовать точную инсоляцию.
+        </p>
     </section>
 
+
+    <!-- ==================== КОЛОНКА 2 — КАРТА ==================== -->
+    <section class="visualization">
+        <h2>Регион</h2>
+
+        <div id="select-region-hint" style="margin-bottom:10px;font-size:16px;color:#444;">
+            Регион ещё не выбран
+        </div>
+
+        <div id="map"></div>
+    </section>
+
+
+    <!-- ==================== КОЛОНКА 3 — РЕЗУЛЬТАТ ==================== -->
     <section class="results">
-      <h2>💰 Расчет эффективности</h2>
-      <div id="results-display">
-        <p><strong>Общая мощность:</strong> <span id="total-power">0</span> Вт</p>
-        <div id="comparison-output"></div>
-      </div>
+        <h2>Результаты</h2>
+        <div id="calc-results">
+            <p>Введите данные слева и выберите регион.</p>
+        </div>
     </section>
-  </div>
+
 </main>
 
-<script src="script.js"></script> 
+
+<!-- ==================== ПОДКЛЮЧЕНИЯ ==================== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="script.js"></script>
+
 </body>
 </html>
