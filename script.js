@@ -1,296 +1,227 @@
-// script.js — подбор комплектов СЭС по потреблению, площади и региону
-// Требует: leaflet (если используешь карту), russia_regions.geojson в корне проекта (опционально)
-
-// -----------------------------
-// Конфигурация комплектов СЭС
-// -----------------------------
+// =================== Конфигурация ===================
 const KITS = [
-  { id: 'kit-1', name: '1 кВт', power_kW: 1, area_m2: 8, price_rub: 114990 },
-  { id: 'kit-5', name: '5 кВт', power_kW: 5, area_m2: 35, price_rub: 344490 },
+  { id: 'kit-1',  name: '1 кВт',  power_kW: 1,  area_m2: 8,  price_rub: 114990 },
+  { id: 'kit-5',  name: '5 кВт',  power_kW: 5,  area_m2: 35, price_rub: 344490 },
   { id: 'kit-10', name: '10 кВт', power_kW: 10, area_m2: 74, price_rub: 677490 }
 ];
 
-const SYSTEM_LOSS = 0.8; // коэффициент потерь (см. обсуждение)
-const SUN_EQUIV_HOURS = 3.5; // используется только для подсказок/проверок, основной расчёт — по PVOUT
+const SYSTEM_LOSS = 0.8;
 
-// -----------------------------
-// Список приборов (средние данные)
-// значения в кВт и часов (kW * hours = kWh/день)
-// -----------------------------
+// приборы — id должен совпадать с чекбоксом, hours и power_kW — для расчёта
 const APPLIANCES = [
-  { id: 'kettle', name: 'Электрочайник', power_kW: 2.0, hours: 0.166, note: '≈10 мин' }, // 0.333 kWh
-  { id: 'microwave', name: 'Микроволновка', power_kW: 1.5, hours: 0.166, note: '≈10 мин' }, // 0.25
-  { id: 'iron', name: 'Утюг', power_kW: 1.8, hours: 0.333, note: '≈20 мин' }, // 0.6
-  { id: 'stove', name: 'Электроплита', power_kW: 4.5, hours: 0.667, note: '≈40 мин' }, // 3.0
-  { id: 'fridge', name: 'Холодильник', power_kW: 0.2, hours: 8, note: 'работает циклично' }, // 1.6
-  { id: 'ac', name: 'Кондиционер', power_kW: 1.0, hours: 5, note: 'летний режим' }, // 5.0
-  { id: 'washer', name: 'Стиральная машина', power_kW: 2.0, hours: 1, note: 'за стирку' }, // 2.0
-  { id: 'oven', name: 'Духовка', power_kW: 2.4, hours: 1, note: 'за включение' }, // 2.4
-  { id: 'lighting', name: 'Освещение (LED)', power_kW: 0.1, hours: 5, note: 'общая подсветка' }, //0.5
-  { id: 'pc', name: 'Компьютер', power_kW: 0.25, hours: 4, note: 'рабочие часы' } //1.0
+  { id:'kettle', name:'Электрочайник', power_kW:2.0, hours:0.166 },
+  { id:'microwave', name:'Микроволновка', power_kW:1.5, hours:0.166 },
+  { id:'iron', name:'Утюг', power_kW:1.8, hours:0.333 },
+  { id:'stove', name:'Электроплита', power_kW:4.5, hours:0.667 },
+  { id:'fridge', name:'Холодильник', power_kW:0.2, hours:8 },
+  { id:'ac', name:'Кондиционер', power_kW:1.0, hours:5 },
+  { id:'washer', name:'Стиральная машина', power_kW:2.0, hours:1 },
+  { id:'oven', name:'Духовка', power_kW:2.4, hours:1 },
+  { id:'lighting', name:'Освещение (LED)', power_kW:0.1, hours:5 },
+  { id:'pc', name:'Компьютер', power_kW:0.25, hours:4 }
 ];
 
-// -----------------------------
-// Переменные для региона/карты
-// -----------------------------
-let pvoutByRegion = {};   // { regionName: pvout }
-let selectedRegionName = null;
-
-// -----------------------------
-// DOM селекторы (попробуем найти, если нет — создадим предупреждение)
-// -----------------------------
+// DOM
 const $ = id => document.getElementById(id);
-
-const areaInput = $('panelArea');      // площадь в м²
+const panelArea = $('panelArea');
+const areaValue = $('areaValue');
+const peakPower = $('peakPower');
+const peakValue = $('peakValue');
+const regionSelect = $('regionSelect');
 const appliancesContainer = $('appliances');
-const tariffInput = $('tariff');      // руб/кВт·ч
-const resultsContainer = $('calc-results');
-const regionHint = $('select-region-hint'); // опционально
-const installTypeContainer = $('install-type'); // опционально (roof/ground radios)
+const resultText = $('resultText');
+const resultImage = $('kitImage');
+const calcResults = $('calc-results');
+const areaCalc = $('areaCalc');
+const regionHint = $('select-region-hint');
+const mapDiv = $('map');
 
-// Проверки
-if (!resultsContainer) {
-  console.warn('script.js: элемент #calc-results не найден. Добавьте его в calculator.html');
-}
-if (!appliancesContainer) {
-  console.warn('script.js: элемент #appliances не найден. Скрипт попытается его создать.');
+let citiesData = [];
+let pvoutByCity = {};
+let selectedCity = null;
+
+// =================== Утилитарки ===================
+function formatNum(n){ return Math.round(n).toLocaleString('ru-RU'); }
+function floatToStr(v, dec=1){ return Number(v).toFixed(dec); }
+
+// =================== Рендер приборов ===================
+function renderAppliances(){
+  appliancesContainer.innerHTML = '';
+  APPLIANCES.forEach(a=>{
+    const div = document.createElement('div');
+    div.className = 'appliance-row';
+    div.innerHTML = `<label><input type="checkbox" id="app-${a.id}"> <strong>${a.name}</strong> — ${(a.power_kW*a.hours).toFixed(2)} кВт·ч/день</label>`;
+    appliancesContainer.appendChild(div);
+
+    // событие сразу привязываем
+    const cb = div.querySelector('input');
+    cb.addEventListener('change', ()=> {
+      syncPeakFromAppliances();
+      runCalculationAndRender();
+    });
+  });
 }
 
-// -----------------------------
-// Инициализация UI: заполняем список приборов
-// -----------------------------
-function renderAppliancesList() {
-  let container = appliancesContainer;
-  if (!container) {
-    // если контейнера нет — создаём под results (fallback)
-    container = document.createElement('div');
-    container.id = 'appliances';
-    const settings = document.querySelector('.settings') || document.body;
-    settings.appendChild(container);
-    console.warn('script.js: #appliances отсутствовал — создан динамически внутри .settings');
+// =================== Синхронизация ползунка Peak от выбранных приборов
+function computeSelectedAppliances(){
+  const sel = APPLIANCES.filter(a=> {
+    const el = document.getElementById(`app-${a.id}`);
+    return el && el.checked;
+  });
+  // суточное потребление и суммарная "пиковая" мощность (сумма номиналов)
+  let daily = 0, peak = 0;
+  sel.forEach(s=>{ daily += s.power_kW * s.hours; peak += s.power_kW; });
+  return { daily, peak };
+}
+
+function syncPeakFromAppliances(){
+  const { daily, peak } = computeSelectedAppliances();
+  // Мы хотим чтобы ползунок peak отражал выбранные приборы.
+  // Если пользователь вручную поднял ползунок выше — не понижаем его автоматически,
+  // но если текущее значение ниже суммы приборов — поднимем его.
+  const cur = parseFloat(peakPower.value);
+  if (peak > cur) {
+    peakPower.value = floatToStr(peak,1);
   }
-
-  container.innerHTML = ''; // очистка
-  APPLIANCES.forEach(app => {
-    const row = document.createElement('div');
-    row.className = 'appliance-row';
-    row.style.marginBottom = '8px';
-
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.id = `app-${app.id}`;
-    cb.dataset.appId = app.id;
-
-    const label = document.createElement('label');
-    label.htmlFor = cb.id;
-    label.style.marginLeft = '8px';
-    label.innerHTML = `<strong>${app.name}</strong> — ${ (app.power_kW * app.hours).toFixed(2) } kWh/день <span style="color:#666">(${app.note})</span>`;
-
-    row.appendChild(cb);
-    row.appendChild(label);
-    container.appendChild(row);
-  });
+  // обновляем отображение
+  peakValue.textContent = floatToStr(peakPower.value,1);
 }
 
-// -----------------------------
-// Вспомогательные расчёты
-// -----------------------------
-function computeDailyConsumption(selectedIds) {
-  // возвращает { daily_kwh, peak_kw }
-  let daily = 0;
-  let peak_kw = 0;
-  APPLIANCES.forEach(app => {
-    if (selectedIds.includes(app.id)) {
-      daily += app.power_kW * app.hours;
-      // для пиков — просто используем мощность прибора как потенциальный пик
-      peak_kw += app.power_kW;
-    }
-  });
-  // peak_kw - это сумма мощностей выбранных приборов; можно оставить как ориентир
-  return { daily_kwh: daily, peak_kw: peak_kw };
-}
+// =================== Подбор комплекта (приоритет peak)
+// Если площадь меньше — выбираем на 1 ступень ниже
+function pickKitByPeak(peakKw, availableArea){
+  // цель — подобрать минимальный комплект, который даёт >= 80% от peak
+  const required = peakKw * 0.8;
 
-function annualFromDaily(daily_kwh) {
-  return daily_kwh * 365;
-}
+  // сначала выберем идеальный по мощности (минимальный, >= required)
+  let ideal = KITS.find(k => k.power_kW >= required);
+  if (!ideal) ideal = KITS[KITS.length-1];
 
-// -----------------------------
-// Подбор подходящего комплекта
-// -----------------------------
-function chooseBestKit(annualConsumptionKwh, availableAreaM2, pvout, peak_kw) {
-  // 1. ОТБОР ПО ПИКОВОЙ МОЩНОСТИ
-  // ищем первый комплект, мощность которого >= пики приборов
-  let idealKit = KITS.find(k => k.power_kW >= peak_kw);
-
-  // если даже 10 кВт меньше пика — берём 10 кВт (лучшего нет)
-  if (!idealKit) idealKit = KITS[KITS.length - 1];
-
-  // 2. ПРОВЕРКА ПО ПЛОЩАДИ
-  // если идеальный не помещается, берём комплект на одну ступень ниже
-  let finalKit = idealKit;
-  if (idealKit.area_m2 > availableAreaM2) {
-    const idx = KITS.indexOf(idealKit);
+  // если площадь задана (>0) и ideal не помещается — шаг вниз
+  if (availableArea > 0 && ideal.area_m2 > availableArea) {
+    const idx = KITS.indexOf(ideal);
     if (idx > 0) {
-      finalKit = KITS[idx - 1];   // спускаемся на ступень ниже
+      return { kit: KITS[idx-1], areaLimited: true, ideal };
+    } else {
+      return { kit: KITS[0], areaLimited: true, ideal };
     }
   }
 
-  // если все равно не помещается — берём самый маленький
-  if (finalKit.area_m2 > availableAreaM2) {
-    finalKit = KITS[0];
-  }
-
-  // 3. РАСЧЁТ ВЫРАБОТКИ
-  const annualGen = finalKit.power_kW * pvout * SYSTEM_LOSS;
-
-  return {
-    kit: finalKit,
-    annualGen,
-    areaLimited: finalKit !== idealKit
-  };
+  return { kit: ideal, areaLimited: false, ideal };
 }
 
-// -----------------------------
-// Основная функция: собираем введённые данные и считаем
-// -----------------------------
-function runCalculationAndRender() {
-  // выбранные приборы
-  const selectedIds = APPLIANCES.filter(a => {
-    const cb = document.getElementById(`app-${a.id}`);
-    return cb && cb.checked;
-  }).map(a => a.id);
+// =================== Основной расчёт и вывод
+function runCalculationAndRender(){
+  const area = Number(panelArea.value) || 0;
+  const peak = Number(peakPower.value) || 0;
+  const tariff = selectedCity ? (selectedCity.tariff || 0) : 0;
+  const pvout = selectedCity ? (selectedCity.pvout || 1400) : 1400;
 
-  const { daily_kwh, peak_kw } = computeDailyConsumption(selectedIds);
-  const annualConsumption = annualFromDaily(daily_kwh); // кВт·ч/год
+  // compute from appliances too
+  const { daily, peak: appliancesPeak } = computeSelectedAppliances();
+  // дневное потребление (kWh)
+  const daily_kwh = daily;
+  const annual = daily_kwh * 365;
 
-  const area = Number(areaInput?.value || 0);
-  const tariff = Number(tariffInput?.value || 0);
+  // pick kit by peak, with area fallback
+  const { kit, areaLimited, ideal } = pickKitByPeak(Math.max(peak, appliancesPeak), area);
 
-  // pvout — берём из выбранного региона, если нет — используем разумную заглушку
-  let pvout = 1400; // запас (кВт·ч/кВтp/год) — если нет данных
-  if (selectedRegionName && pvoutByRegion[selectedRegionName]) {
-    pvout = pvoutByRegion[selectedRegionName];
+  const annualGen = kit.power_kW * pvout * SYSTEM_LOSS; // кВт·ч/год
+  const coverage = annual > 0 ? Math.min(100, (annualGen / annual) * 100) : 0;
+  const savings = annualGen * tariff;
+
+  // quick top result (hero)
+  if (!area || !peak) {
+    resultText.innerHTML = `<div class="placeholder">Введите площадь и мощность для расчёта</div>`;
+    resultImage.src = `img/${kit.id}.jpg`;
+  } else {
+    resultText.innerHTML = `
+      <div>
+        <p class="muted">На основе введённых параметров вам подойдет</p>
+        <p class="big">${kit.name} — ${kit.power_kW} кВт</p>
+        <p>Ожидаемая годовая выработка: <strong>${formatNum(annualGen)} кВт·ч/год</strong></p>
+        <p>Ожидаемая экономия: <strong>${formatNum(savings)} ₽/год</strong></p>
+        ${areaLimited ? '<p style="color:#b33"><strong>Внимание:</strong> площадь не позволяет установить идеальный комплект ('+ideal.name+'). Установлен комплект на одну ступень ниже.</p>' : ''}
+      </div>`;
+    resultImage.src = `img/${kit.id}.jpg`;
   }
 
-  const chosen = chooseBestKit(annualConsumption, area, pvout, peak_kw);
-  const kit = chosen.kit;
-  const annualGen = chosen.annualGen;
-  const coveragePercent = annualConsumption > 0 ? Math.min(100, (annualGen / annualConsumption) * 100) : 0;
-  const yearlySavings = annualGen * tariff;
-
-  // Отобразим результаты
-  if (!resultsContainer) return;
-
-  const areaNote = chosen.areaLimited
-    ? `<p style="color:#b33"><strong>Внимание:</strong> введённая площадь не позволяет установить рекомендованные комплекты — выбран максимально возможный комплект.</p>`
-    : '';
-
-  resultsContainer.innerHTML = `
-    <h3>Результат подбора</h3>
-    <p><strong>Суточное потребление выбранных приборов:</strong> ${daily_kwh.toFixed(2)} кВт·ч</p>
-    <p><strong>Пиковая суммарная мощность (ориентир):</strong> ${peak_kw.toFixed(2)} кВт</p>
-    <p><strong>Годовое потребление (оценка):</strong> ${Math.round(annualConsumption).toLocaleString('ru-RU')} кВт·ч/год</p>
+  // lower results
+  calcResults.innerHTML = `
+    <p><strong>Суточное потребление (из выбранных приборов):</strong> ${daily_kwh.toFixed(2)} кВт·ч</p>
+    <p><strong>Пиковая мощность (ориентир):</strong> ${Math.max(peak, appliancesPeak).toFixed(2)} кВт</p>
+    <p><strong>Годовое потребление:</strong> ${formatNum(annual)} кВт·ч/год</p>
     <hr>
-    <p><strong>Рекомендованный комплект:</strong> ${kit.name} — мощность ${kit.power_kW} кВт, занимает ${kit.area_m2} м², стоимость ${kit.price_rub.toLocaleString('ru-RU')} ₽</p>
-    <p><strong>Ожидаемая годовая выработка:</strong> ${Math.round(annualGen).toLocaleString('ru-RU')} кВт·ч/год</p>
-    <p><strong>Покрытие потребления:</strong> ${coveragePercent.toFixed(0)}%</p>
-    <p><strong>Ожидаемая годовая экономия:</strong> ${Math.round(yearlySavings).toLocaleString('ru-RU')} ₽/год (при тарифе ${tariff} ₽/кВт·ч)</p>
-    ${areaNote}
-    <hr>
-    <p class="hint">PVOUT использован: ${pvout} кВт·ч/кВтp/год. Коэффициент системных потерь: ${Math.round((1-SYSTEM_LOSS)*100)}%.</p>
-    <p style="margin-top:10px"><button id="recalcButton">Пересчитать</button></p>
+    <p><strong>Рекомендованный комплект:</strong> ${kit.name} — ${kit.area_m2} м², ${kit.price_rub.toLocaleString('ru-RU')} ₽</p>
+    <p><strong>Годовая выработка:</strong> ${formatNum(annualGen)} кВт·ч/год</p>
+    <p><strong>Покрытие потребления:</strong> ${coverage.toFixed(0)}%</p>
+    <p><strong>Экономия в год:</strong> ${formatNum(savings)} ₽</p>
   `;
 
-  // привяжем кнопку пересчёта
-  const recalcBtn = document.getElementById('recalcButton');
-  if (recalcBtn) recalcBtn.addEventListener('click', runCalculationAndRender);
+  // useful area calc (примерно)
+  areaCalc.textContent = `Из доступной площади ${area} м² под панели реально получится занять ~${Math.max(0, Math.floor(area*0.85))} м² (учёт проходов, стыков).`;
+
 }
 
-// -----------------------------
-// Инициализация карты + загрузка регионов (если есть элемент #map)
-// Поддерживает geojson со свойствами { name: "...", pvout: 1234 }
-// -----------------------------
-function initMapIfNeeded() {
-  const mapDiv = document.getElementById('map');
-  if (!mapDiv) {
-    // карта не используется — ok
-    return;
-  }
-
-  // проверяем, не инициализировано ли уже
-  if (window._solarMapInitialized) return;
-  window._solarMapInitialized = true;
-
-  // Подключаем Leaflet-слой, если L доступен
-  try {
-    const map = L.map('map').setView([61, 100], 3);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // Контроль координат (внизу слева)
-    const coordsControl = L.control({ position: 'bottomleft' });
-    coordsControl.onAdd = () => {
-      const div = L.DomUtil.create('div', 'leaflet-control-coords');
-      div.innerHTML = 'Координаты: —';
-      return div;
-    };
-    coordsControl.addTo(map);
-
-    map.on('mousemove', (e) => {
-      const lat = e.latlng.lat.toFixed(4);
-      const lng = e.latlng.lng.toFixed(4);
-      document.querySelectorAll('.leaflet-control-coords').forEach(d => d.innerHTML = `📍 ${lng}, ${lat}`);
-    });
-
-    // Попытаемся загрузить geojson
-    fetch('russia_regions.geojson')
-      .then(r => {
-        if (!r.ok) throw new Error('regions not found');
-        return r.json();
-      })
-      .then(data => {
-        L.geoJSON(data, {
-          style: { color: '#0b3', weight: 1, fillColor: '#cfead0', fillOpacity: 0.7 },
-          onEachFeature: (feature, layer) => {
-            const name = feature.properties?.name || feature.properties?.NAME || 'Регион';
-            const pvout = Number(feature.properties?.pvout || feature.properties?.PVOUT || 1400);
-            pvoutByRegion[name] = pvout;
-
-            layer.on('mouseover', () => layer.setStyle({ fillColor: '#ffd54f', fillOpacity: 0.9 }));
-            layer.on('mouseout', () => layer.setStyle({ fillColor: selectedRegionName === name ? '#ffe082' : '#cfead0', fillOpacity: 0.7 }));
-            layer.on('click', (e) => {
-              selectedRegionName = name;
-              if (regionHint) regionHint.textContent = `Выбран регион: ${name} (PVOUT ${pvout})`;
-              // сбросим стиль всех: (приблизительно) — перекрашиваем слой целиком через reload
-              // проще: выставим стиль для всех через setStyle при каждом рендере — но здесь изменим только данный слой
-              layer.setStyle({ fillColor: '#ffe082', fillOpacity: 0.95 });
-              runCalculationAndRender();
-            });
-          }
-        }).addTo(map);
-      })
-      .catch(err => {
-        console.warn('Не удалось загрузить russia_regions.geojson — региональные PVOUT будут недоступны.', err);
+// =================== Загрузка городов (cities.json)
+function loadCities(){
+  fetch('cities.json')
+    .then(r => r.json())
+    .then(list => {
+      citiesData = list;
+      regionSelect.innerHTML = '';
+      // добавим опцию Москва по умолчанию, если есть
+      let defaultIndex = 0;
+      list.forEach((c,i)=>{
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${c.city} (PVOUT ${c.pvout}, тариф ${c.tariff} ₽)`;
+        regionSelect.appendChild(opt);
+        if (c.city.toLowerCase().includes('москв')) defaultIndex = i;
       });
-
-  } catch (err) {
-    console.warn('Leaflet не инициализирован или отсутствует — карта не будет работать.', err);
-  }
+      regionSelect.selectedIndex = defaultIndex;
+      selectedCity = list[defaultIndex];
+      regionHint && (regionHint.textContent = `Выбран регион: ${selectedCity.city} (PVOUT ${selectedCity.pvout})`);
+      runCalculationAndRender();
+    })
+    .catch(e=>{
+      console.warn('cities.json не найден:', e);
+      // fallback
+      selectedCity = null;
+    });
 }
 
-// -----------------------------
-// События: инит
-// -----------------------------
-document.addEventListener('DOMContentLoaded', () => {
-  renderAppliancesList();
-  initMapIfNeeded();
+// =================== События и инициализация
+document.addEventListener('DOMContentLoaded', ()=>{
+  renderAppliances();
+  loadCities();
 
-  // связываем inputs (если есть)
-  if (areaInput) areaInput.addEventListener('input', runCalculationAndRender);
-  if (tariffInput) tariffInput.addEventListener('input', runCalculationAndRender);
+  // sync displays
+  areaValue.textContent = panelArea.value;
+  peakValue.textContent = parseFloat(peakPower.value).toFixed(1);
 
-  // первичный расчёт
-  runCalculationAndRender();
+  panelArea.addEventListener('input', ()=>{
+    areaValue.textContent = panelArea.value;
+    runCalculationAndRender();
+  });
+
+  peakPower.addEventListener('input', ()=>{
+    peakValue.textContent = parseFloat(peakPower.value).toFixed(1);
+    runCalculationAndRender();
+  });
+
+  regionSelect.addEventListener('change', ()=>{
+    const idx = parseInt(regionSelect.value,10);
+    selectedCity = citiesData[idx];
+    regionHint && (regionHint.textContent = `Выбран регион: ${selectedCity.city} (PVOUT ${selectedCity.pvout})`);
+    runCalculationAndRender();
+  });
+
+  // Optional: init leaflet map bounded to world so it doesn't fly away
+  if (mapDiv) {
+    const map = L.map('map', {
+      minZoom:3, maxZoom:7, maxBounds:[[85,-180],[-85,180]], maxBoundsViscosity:1.0
+    }).setView([61,100],3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  }
 });
