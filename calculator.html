@@ -1,84 +1,91 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор Солнечной Энергии — HEVEL</title>
-
-    <!-- Leaflet карта -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- Основные стили сайта -->
-    <link rel="stylesheet" href="style.css">
-
+<meta charset="UTF-8">
+<title>Калькулятор солнечных комплектов</title>
+<link rel="stylesheet" href="style.css">
 </head>
-    
+
 <body>
 
-<header class="topbar">
-  <a href="index.html" class="logo">HEVEL 🌞</a>
+<header class="main-header">
+    <a href="index.html" class="logo">HEVEL 🌞</a>
 </header>
 
-<!-- ==================== ОСНОВНАЯ СТРАНИЦА ==================== -->
-<div style="height: 20px;"></div>
-<main class="grid-layout">
+<div class="calc-screen-wrapper">
+    
+    <div class="calc-top">
+        <div class="calc-top-inner">
+            <h2>Параметры объекта</h2>
 
-    <!-- ==================== КОЛОНКА 1 — НАСТРОЙКИ ==================== -->
-    <section class="settings">
-        <h2>Настройки</h2>
+            <div class="top-controls">
+                <div class="top-block">
+                    <label>Площадь, м²</label>
+                    
+                    <div class="range-wrapper">
+                        <div id="panelAreaVal" class="floating-value">0</div>
+                        <input type="range" id="panelArea" min="0" max="150" value="0">
+                    </div>
+                    
+                    <div class="slider-labels-static">
+                        <span>0</span>
+                        <span>150</span>
+                    </div>
+                </div>
 
-        <!-- Место установки -->
-        <div id="install-type">
-            <p><strong>Место установки:</strong></p>
-            <label><input type="radio" name="install" value="roof" checked> Кровля</label><br>
-            <label><input type="radio" name="install" value="ground"> Земля</label>
+                <div class="top-block">
+                    <label>Мощность, кВт</label>
+                    
+                    <div class="range-wrapper">
+                        <div id="peakVal" class="floating-value">0</div>
+                        <input type="range" id="peakPower" min="0" max="20" value="0" step="0.1">
+                    </div>
+
+                    <div class="slider-labels-static">
+                        <span>0</span>
+                        <span>20</span>
+                    </div>
+                </div>
+
+                <div class="top-block">
+                    <label>Регион</label>
+                    <select id="regionSelect" class="region-select"></select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="results-section" id="resultsSection">
+        <div class="placeholder-box">
+            <div class="placeholder-text">
+                Укажите площадь вашего объекта и пиковую мощность,<br>
+                и мы подберём для вас оптимальный готовый комплект
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-settings">
+    <h2>Дополнительные параметры</h2>
+
+    <h3>Полезная площадь </h3>
+    <input type="text" id="usableArea" value="Расчет в разработке..." readonly>
+
+    <h3 style="margin-top:40px;">Электроприборы</h3>
+    
+    <div class="multiselect-container">
+        
+        <div class="dropdown-wrapper">
+            <button class="dropdown-btn" id="appliancesBtn">Выбрать приборы</button>
+            <div class="dropdown-list" id="appliancesList">
+                </div>
         </div>
 
-        <!-- Площадь -->
-        <p style="margin-top:15px"><strong>Доступная площадь (м²):</strong></p>
-        <input type="number" id="panelArea" min="0" placeholder="Напр. 50">
-
-        <!-- Приборы -->
-        <p style="margin-top:20px"><strong>Ваши электроприборы:</strong></p>
-        <div id="appliances"></div>
-
-        <!-- Тариф -->
-        <p style="margin-top:20px"><strong>Ваш тариф (₽/кВт·ч):</strong></p>
-        <input type="number" id="tariff" min="0" step="0.1" placeholder="Напр. 5.5">
-
-        <p style="margin-top:20px;font-size:14px;opacity:0.7;">
-            * Выберите регион на карте справа, чтобы использовать точную инсоляцию.
-        </p>
-    </section>
-
-
-    <!-- ==================== КОЛОНКА 2 — КАРТА ==================== -->
-    <section class="visualization">
-        <h2>Регион</h2>
-
-        <div id="select-region-hint" style="margin-bottom:10px;font-size:16px;color:#444;">
-            Регион ещё не выбран
-        </div>
-
-        <div id="map"></div>
-    </section>
-
-
-    <!-- ==================== КОЛОНКА 3 — РЕЗУЛЬТАТ ==================== -->
-    <section class="results">
-        <h2>Результаты</h2>
-        <div id="calc-results">
-            <p>Введите данные слева и выберите регион.</p>
-        </div>
-    </section>
-
-</main>
-
-
-<!-- ==================== ПОДКЛЮЧЕНИЯ ==================== -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <div class="selected-tags" id="selectedTags"></div>
+        
+    </div>
+</div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
