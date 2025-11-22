@@ -1,241 +1,454 @@
-/* ==========================
-   БАЗОВЫЕ СТИЛИ
-========================== */
+/* =====================================================
+   ЦВЕТА И ТИПОГРАФИКА
+===================================================== */
+
+:root {
+    --main: rgb(2, 82, 56);       
+    --accent: rgb(250, 90, 0);    
+    --gray: rgb(163, 166, 171);
+    --lightgray: rgb(236, 236, 239);
+    
+    --bg: #ffffff;
+    --card: #ffffff;
+    --text: #222;
+}
 
 body {
     margin: 0;
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: #e9f4ec; /* мягкий светло-зелёный фон */
-    color: #222;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "FSElliot", "Clinica Pro", "Segoe UI", Arial, sans-serif;
+}
+
+@font-face {
+    font-family: "FSElliot";
+    src: local("FSElliot"), local("Clinica Pro");
 }
 
 h1, h2, h3 {
     font-weight: 600;
-    margin-top: 0;
+    margin: 0 0 15px;
 }
 
-p {
-    line-height: 1.5;
-}
+/* =====================================================
+   ШАПКА
+===================================================== */
 
-/* --- Верхняя полоска как у HEVEL --- */
-.topbar {
-    background: #0d5e42;
-    padding: 12px 24px;
+.main-header {
+    width: 100%;
+    background: var(--main);
+    padding: 15px 30px;
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    height: 70px;
 }
 
-.topbar .logo {
-    color: #fff;
-    font-size: 22px;
+.logo {
+    font-size: 24px;
     font-weight: 700;
+    color: white;
     text-decoration: none;
     letter-spacing: 0.5px;
 }
 
-/* ==========================
+/* =====================================================
    ГЛАВНАЯ СТРАНИЦА
-========================== */
-
+===================================================== */
 .hero {
-    background: linear-gradient(135deg, #1aa065, #0e5f43);
+    background: linear-gradient(rgba(2,82,56,0.85), rgba(2,82,56,0.7)), url('https://via.placeholder.com/1600x900?text=HEVEL+SOLAR+BG') center/cover no-repeat;
     color: white;
-    padding: 90px 20px;
+    padding: 100px 20px;
     text-align: center;
 }
-
-.hero h1 {
-    font-size: 46px;
-}
-
-.hero p {
-    font-size: 20px;
-    max-width: 650px;
-    margin: 10px auto 30px;
-}
-
+.hero h1 { font-size: 48px; margin-bottom: 20px; }
+.hero p { font-size: 20px; max-width: 600px; margin: 0 auto 30px; opacity: 0.9; }
 .hero-button {
     display: inline-block;
-    background: #ffcc00;
-    color: #222;
-    padding: 14px 26px;
-    border-radius: 10px;
-    font-size: 20px;
+    background: var(--accent);
+    color: white;
+    padding: 15px 40px;
+    border-radius: 30px;
     text-decoration: none;
-    transition: 0.2s;
-    font-weight: 600;
+    font-weight: bold;
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+.hero-button:hover { transform: scale(1.05); }
+.info-section { max-width: 1100px; margin: 60px auto; padding: 0 20px; text-align: center; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px; }
+.info-card { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); text-align: left; }
+.info-card h3 { color: var(--accent); }
+
+/* =====================================================
+   КАЛЬКУЛЯТОР — ВЕРХНИЕ НАСТРОЙКИ (ЛИПКИЕ)
+===================================================== */
+
+.calc-screen-wrapper {
+    display: flex;
+    flex-direction: column;
 }
 
-.hero-button:hover {
-    background: #ffe37a;
+.calc-top {
+    position: sticky;
+    top: 70px;
+    z-index: 900;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--lightgray);
+    padding: 15px 20px; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    margin-bottom: 10px; 
 }
 
-/* Инфо-блоки */
-
-.info-section {
+.calc-top-inner {
     max-width: 1100px;
-    margin: 50px auto;
-    padding: 0 20px;
-}
-
-.info-section h2 {
+    margin: 0 auto;
     text-align: center;
-    margin-bottom: 40px;
-    font-size: 32px;
 }
 
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 26px;
+.top-controls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 40px; 
+    margin-top: 15px;
 }
 
-.info-card {
-    background: white;
-    padding: 25px;
-    border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    transition: 0.3s;
+.top-block {
+    width: 280px;
+    text-align: center;
+    padding: 0 10px;
 }
 
-.info-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+.top-block label {
+    display: block;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 25px; 
+    font-weight: 600;
+    color: var(--main);
 }
 
-.info-card h3 {
-    margin-bottom: 8px;
-    font-size: 22px;
+/* =====================================================
+   СЛАЙДЕРЫ
+===================================================== */
+
+.range-wrapper {
+    position: relative; 
+    width: 100%;
+    height: 40px; 
+    display: flex;
+    align-items: center;
 }
 
-/* ==========================
-   КАЛЬКУЛЯТОР — ОСНОВНАЯ СЕТКА
-========================== */
-
-.grid-layout {
-    display: grid;
-    grid-template-columns: 300px 1fr 300px;
-    gap: 24px;
-    max-width: 1400px;
-    margin: 30px auto;
-    padding: 0 20px;
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: transparent;
+    cursor: pointer;
+    margin: 0;
+    z-index: 2;
 }
 
-/* Блоки */
-
-.settings,
-.visualization,
-.results {
-    background: white;
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+/* Трек */
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--main) 0%, var(--main) var(--percent, 0%), #eee var(--percent, 0%), #eee 100%);
 }
 
-/* Настройки слева */
+/* Ползунок (кружок) - ширина 28px важна для JS расчетов */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 28px;
+    width: 28px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    margin-top: -11px;
+    border: none;
+    transition: transform 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
 
-.settings input[type="number"] {
+/* Firefox */
+input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #eee; 
+}
+input[type="range"]::-moz-range-progress {
+    background: var(--main); 
+    height: 6px;
+    border-radius: 3px;
+}
+input[type="range"]::-moz-range-thumb {
+    height: 28px;
+    width: 28px;
+    border: none;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* Бегающее значение */
+.floating-value {
+    position: absolute;
+    top: -30px;
+    left: 0; /* Контролируется JS */
+    transform: translateX(-50%); /* Центрирование текста относительно точки */
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--main);
+    pointer-events: none; 
+    white-space: nowrap;
+    transition: left 0.1s ease-out; /* Плавность движения */
+}
+
+.slider-labels-static {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 5px;
+}
+
+.region-select {
     width: 100%;
     padding: 10px;
-    border: 1px solid #bbb;
     border-radius: 8px;
-    margin-top: 6px;
-    margin-bottom: 12px;
+    border: 1px solid var(--gray);
+    background: white;
+    font-size: 15px;
 }
 
-/* Карту красиво оформить */
+/* =====================================================
+   РЕЗУЛЬТАТ
+===================================================== */
 
-#map {
+.results-section {
+    max-width: 1200px;
     width: 100%;
-    height: 600px;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
-    transition: 0.2s;
+    margin: 0 auto;
+    padding: 20px;
+    /* Контейнер растягивается по содержимому, но центрирует его */
+    display: flex;
+    justify-content: center; 
 }
 
-#map:hover {
-    box-shadow: 0 0 18px rgba(255, 221, 0, 0.4);
+/* Общие стили границ для обоих состояний */
+.placeholder-box,
+.result-panel {
+    width: 100%;
+    min-height: 500px; /* Фиксируем одинаковую высоту для обоих блоков */
+    border-radius: 24px; /* Одинаковые скругления */
+    box-sizing: border-box; /* Чтобы паддинги не ломали размеры */
 }
 
-/* Блок результатов */
-
-.results {
-    font-size: 17px;
+/* 1. Состояние: Плейсхолдер (Серый) */
+.placeholder-box {
+    background: var(--lightgray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text);
+    padding: 40px;
 }
 
-/* ==========================
-   АДАПТИВ
-========================== */
-
-@media (max-width: 1100px) {
-    .info-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .grid-layout {
-        /* При переходе в одну колонку убираем фиксированную ширину колонок */
-        grid-template-columns: 1fr;
-    }
+.placeholder-text {
+    font-size: 24px;
+    line-height: 1.5;
+    max-width: 700px;
 }
 
-@media (max-width: 700px) {
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .hero h1 {
-        font-size: 32px;
-    }
-
-    .hero p {
-        font-size: 18px;
-    }
+/* 2. Состояние: Результат (Белый с тенью) */
+.result-panel {
+    background: var(--card);
+    display: grid;
+    grid-template-columns: 1fr 1.5fr; /* Текст слева, Картинка справа */
+    gap: 0; /* Убираем дырки, чтобы картинка касалась краев */
+    overflow: hidden; /* Чтобы картинка не вылезала за скругления */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    border: 1px solid var(--lightgray); /* Тонкая рамка для четкости */
 }
 
-/* Адаптив для маленьких телефонов (<= 500px) */
-@media (max-width: 500px) {
-    
-    /* Шапка */
-    .topbar {
-        padding: 10px 15px; /* Уменьшаем боковые отступы */
-    }
+.result-info {
+    padding: 50px; /* Внутренний отступ текста */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
 
-    /* Главный блок (Hero) */
-    .hero {
-        padding: 60px 15px; /* Уменьшаем вертикальные отступы */
-    }
+.result-info h2 { 
+    font-size: 36px; 
+    color: var(--main); 
+    margin-bottom: 25px; 
+}
 
-    .hero h1 {
-        font-size: 28px; /* Еще немного уменьшаем заголовок */
-    }
+.result-info p { 
+    font-size: 18px; 
+    line-height: 1.6; 
+    margin-bottom: 15px; 
+    color: #444;
+}
 
-    .hero p {
-        font-size: 16px; /* Немного уменьшаем текст */
-    }
+/* Блок с ценой и доп инфо */
+.result-meta {
+    margin-top: 30px;
+}
 
-    .hero-button {
-        padding: 12px 20px; /* Уменьшаем кнопку */
-        font-size: 18px;
-    }
+.result-info .price { 
+    font-size: 32px; 
+    font-weight: 700; 
+    color: var(--accent); 
+    display: block;
+    margin-top: 10px;
+}
 
-    /* Секции (Калькулятор и Инфо-блоки) */
-    .info-section {
-        margin: 40px auto; /* Меньше вертикальный отступ */
-        padding: 0 15px;
-    }
+.result-image-block { 
+    position: relative; 
+    height: 100%; 
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px; 
+    box-sizing: border-box;
+    background: white;
+}
 
-    /* Блоки калькулятора */
-    .settings,
-    .visualization,
-    .results {
-        padding: 20px; /* Уменьшаем внутренние отступы */
-    }
+.result-image-block img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; 
+    display: block;
+}
+.error-message { 
+    width: 100%;
+    min-height: 500px; /* Для ошибки тоже такую же высоту */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center; 
+    padding: 40px; 
+    background: #fff0f0; 
+    border: 2px solid #ffcccc; 
+    border-radius: 24px; 
+    color: #c00; 
+    font-size: 20px; 
+    box-sizing: border-box;
+}
 
-    /* Карта */
-    #map {
-        height: 400px; /* Уменьшаем высоту карты, чтобы она не занимала весь экран */
-    }
+/* =====================================================
+   НИЖНИЕ НАСТРОЙКИ & MULTISELECT
+===================================================== */
 
+.bottom-settings {
+    max-width: 1100px;
+    margin: 0 auto 80px;
+    padding: 40px 20px 0;
+    text-align: left;
+    border-top: 1px solid var(--lightgray);
+}
+
+.bottom-settings input[type="text"] {
+    padding: 12px;
+    width: 100%;
+    max-width: 300px;
+    border-radius: 10px;
+    border: 1px solid var(--gray);
+    font-size: 16px;
+    background: #f9f9f9;
+    color: #777;
+}
+
+.multiselect-container {
+    max-width: 400px; 
+    margin-top: 10px;
+}
+
+.dropdown-wrapper {
+    position: relative;
+    margin-bottom: 15px;
+    display: inline-block; 
+    width: 100%;
+}
+
+.dropdown-btn {
+    padding: 12px 20px;
+    background: white;
+    border: 1px solid var(--gray);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    text-align: left;
+    position: relative;
+    font-weight: 500;
+}
+
+.dropdown-btn:after {
+    content: '►'; 
+    position: absolute;
+    right: 15px;
+    font-size: 12px;
+    color: #777;
+}
+
+.dropdown-list {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 15px); 
+    width: 300px; 
+    background: white;
+    border: 1px solid var(--gray);
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    z-index: 200;
+    max-height: 350px;
+    overflow-y: auto;
+    display: none; 
+}
+
+.dropdown-list.show { display: block; }
+
+.dropdown-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background 0.1s;
+    display: flex;
+    justify-content: space-between;
+}
+.dropdown-item:hover { background: #f0f7f4; }
+.dropdown-item.selected { background: #e8f5e9; color: var(--main); font-weight: 600; }
+.dropdown-item.selected::after { content: '✔'; }
+
+.selected-tags { display: flex; flex-wrap: wrap; gap: 10px; min-height: 10px; }
+.tag-pill { background: #333; color: white; border-radius: 20px; padding: 8px 16px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.tag-close { cursor: pointer; opacity: 0.7; font-weight: bold; }
+.tag-close:hover { opacity: 1; }
+
+/* =====================================================
+   ADAPTIVE
+===================================================== */
+@media (max-width: 900px) {
+    .result-panel { grid-template-columns: 1fr; }
+    .result-image-block { height: 250px; min-height: auto; }
+    .top-controls { flex-direction: column; align-items: center; }
+    .dropdown-list { left: 0; top: 110%; width: 100%; }
+    /* На мобильных можно уменьшить высоту, чтобы не было пустых полей */
+    .placeholder-box, .result-panel { min-height: auto; }
 }
