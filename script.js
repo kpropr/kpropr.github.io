@@ -85,8 +85,6 @@ function loadCities(){
 
 // =================== 2. Логика Multiselect ===================
 
-// =================== 2. Логика Multiselect ===================
-
 function renderDropdown() {
     appliancesList.innerHTML = '';
     APPLIANCES.forEach(app => {
@@ -273,3 +271,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(panelAreaIn.value > 0) runCalculationAndRender();
   });
 });
+
