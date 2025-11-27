@@ -1,4 +1,3 @@
-// =================== Конфигурация ===================
 const KITS = [
   { id: 'kit-1',  name: 'Комплект 1 кВт',  power_kW: 1,  area_m2: 8,  price_rub: 114990 },
   { id: 'kit-5',  name: 'Комплект 5 кВт',  power_kW: 5,  area_m2: 35, price_rub: 344490 },
@@ -20,7 +19,6 @@ const APPLIANCES = [
   { id:'pc', name:'Компьютер', power_kW:0.25 }
 ];
 
-// DOM
 const $ = id => document.getElementById(id);
 const panelAreaIn = $('panelArea');
 const panelAreaTxt = $('panelAreaVal');
@@ -36,7 +34,7 @@ let citiesData = [];
 let selectedCity = null;
 let selectedApplianceIds = []; 
 
-// =================== Утилиты ===================
+
 function formatNum(n){ return Math.round(n).toLocaleString('ru-RU'); }
 function updateSliderFill(slider, textElement) {
     const val = parseFloat(slider.value);
@@ -50,7 +48,6 @@ function updateSliderFill(slider, textElement) {
     }
 }
 
-// =================== 1. Города ===================
 function loadCities(){
   fetch('cities.json')
     .then(r => r.json())
@@ -71,7 +68,6 @@ function loadCities(){
     .catch(e => console.warn('cities.json не найден', e));
 }
 
-// =================== 2. Логика Multiselect ===================
 function renderDropdown() {
     appliancesList.innerHTML = '';
     APPLIANCES.forEach(app => {
@@ -146,7 +142,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// =================== 3. Синхронизация ===================
 function syncPeakFromAppliances(){
   if(selectedApplianceIds.length === 0) return; 
 
@@ -160,7 +155,6 @@ function syncPeakFromAppliances(){
   updateSliderFill(peakPowerIn, peakPowerTxt);
 }
 
-// =================== 4. Основной Расчет ===================
 function runCalculationAndRender(){
   const area = Number(panelAreaIn.value);
   const peak = Number(peakPowerIn.value);
@@ -231,7 +225,6 @@ function runCalculationAndRender(){
   `;
 }
 
-// =================== Инициализация ===================
 document.addEventListener('DOMContentLoaded', ()=>{
   loadCities();
   updateSliderFill(panelAreaIn, panelAreaTxt);
@@ -254,3 +247,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(panelAreaIn.value > 0) runCalculationAndRender();
   });
 });
+
