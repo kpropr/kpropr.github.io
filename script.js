@@ -38,26 +38,14 @@ let selectedApplianceIds = [];
 
 // =================== Утилиты ===================
 function formatNum(n){ return Math.round(n).toLocaleString('ru-RU'); }
-
-// Функция для заполнения слайдера + точного позиционирования текста
 function updateSliderFill(slider, textElement) {
     const val = parseFloat(slider.value);
     const min = parseFloat(slider.min);
     const max = parseFloat(slider.max);
-    
-    // 1. Считаем процент (0..100)
     const percent = ((val - min) / (max - min)) * 100;
-    
-    // 2. Красим полоску
     slider.style.setProperty('--percent', percent + '%');
-    
-    // 3. Двигаем текст с компенсацией ширины кружка
     if(textElement) {
-        // Ширина кружка ~28px. Половина = 14px.
-        // Логика: на 0% нужно сместить на +14px, на 100% сместить на -14px.
-        // Формула: calc(X% + (14px - X * 0.28px))
         textElement.style.left = `calc(${percent}% + (${14 - percent * 0.28}px))`;
-        
         textElement.textContent = val; 
     }
 }
@@ -84,7 +72,6 @@ function loadCities(){
 }
 
 // =================== 2. Логика Multiselect ===================
-
 function renderDropdown() {
     appliancesList.innerHTML = '';
     APPLIANCES.forEach(app => {
@@ -217,7 +204,6 @@ function runCalculationAndRender(){
          return;
      }
   }
-
   const annualGen = finalKit.power_kW * pvout * SYSTEM_LOSS; 
   const savings = annualGen * tariff;
   
@@ -228,7 +214,6 @@ function runCalculationAndRender(){
         Подобран вариант меньше.</em>
       </p>`;
   }
-
   resultsSection.innerHTML = `
     <div class="result-panel">
         <div class="result-info">
@@ -249,8 +234,6 @@ function runCalculationAndRender(){
 // =================== Инициализация ===================
 document.addEventListener('DOMContentLoaded', ()=>{
   loadCities();
-  
-  // Инициализация (нули)
   updateSliderFill(panelAreaIn, panelAreaTxt);
   updateSliderFill(peakPowerIn, peakPowerTxt);
 
@@ -271,4 +254,3 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(panelAreaIn.value > 0) runCalculationAndRender();
   });
 });
-
