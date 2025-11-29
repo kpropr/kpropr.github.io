@@ -36,56 +36,164 @@ h1, h2, h3 {
 
 .main-header {
     width: 100%;
-    background: var(--main);
-    padding: 15px 30px;
+    background: #ffffff; 
+    padding: 10px 30px; 
     box-sizing: border-box;
     position: sticky;
     top: 0;
     z-index: 1000;
-    display: flex;
+    display: flex; 
     align-items: center;
-    justify-content: space-between;
-    height: 70px;
+    gap: 65px; 
+    height: 70px; 
 }
 
 .logo {
-    font-size: 24px;
-    font-weight: 700;
-    color: white;
+    display: flex;
+    align-items: center;
     text-decoration: none;
-    letter-spacing: 0.5px;
+}
+
+.logo img {
+    height: 35px; 
+    width: auto;  
+    display: block;
+}
+
+.header-nav a {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--main); 
+    text-decoration: none;
+    transition: color 0.2s;
+    display: inline-block; 
+    transform: translateY(2px);
+}
+
+.header-nav a:hover {
+    color: var(--accent); 
 }
 
 /* =====================================================
    ГЛАВНАЯ СТРАНИЦА
 ===================================================== */
+
 .hero {
-    background: linear-gradient(rgba(2,82,56,0.85), rgba(2,82,56,0.7)), url('https://via.placeholder.com/1600x900?text=HEVEL+SOLAR+BG') center/cover no-repeat;
-    color: white;
-    padding: 100px 20px;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), 
+                      url('img/hero_bg.jpg'); 
+    background-size: cover;
+    background-position: center center;
+    background-color: var(--main); 
+    color: white; 
+    padding: 100px 20px 80px; 
     text-align: center;
+    border-bottom: none; 
 }
-.hero h1 { font-size: 48px; margin-bottom: 20px; }
-.hero p { font-size: 20px; max-width: 600px; margin: 0 auto 30px; opacity: 0.9; }
-.hero-button {
-    display: inline-block;
-    background: var(--accent);
-    color: white;
-    padding: 15px 40px;
-    border-radius: 30px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 18px;
-    transition: transform 0.2s;
+.hero h1 { 
+    font-size: 52px;
+    margin-bottom: 20px;
+    color: white; 
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5); 
 }
-.hero-button:hover { transform: scale(1.05); }
-.info-section { max-width: 1100px; margin: 60px auto; padding: 0 20px; text-align: center; }
-.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px; }
-.info-card { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); text-align: left; }
-.info-card h3 { color: var(--accent); }
+.hero p { 
+    font-size: 22px; 
+    max-width: 700px; 
+    margin: 0 auto 40px; 
+    opacity: 1; 
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.info-section { 
+    background: #ffffff; 
+    max-width: 1100px; 
+    margin: 60px auto; 
+    padding: 0 20px; 
+    text-align: center; 
+}
+
+.info-section h2 {
+    color: var(--main); 
+}
+
+.info-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+    gap: 30px; 
+    margin-top: 40px; 
+}
 
 /* =====================================================
-   КАЛЬКУЛЯТОР — ВЕРХНИЕ НАСТРОЙКИ 
+   ИНФО-КАРТОЧКИ (ЭФФЕКТ МАСШТАБИРОВАНИЯ)
+===================================================== */
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 40px;
+    align-items: flex-start; 
+}
+
+.info-card {
+    background: var(--card);
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    text-align: left;
+    
+    transform-origin: center top; 
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+    position: relative;
+    z-index: 1; 
+}
+
+.info-card h3 {
+    color: var(--accent);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 22px;
+}
+
+.short-text {
+    font-size: 18px;
+    line-height: 1.5;
+    color: #444;
+    margin-bottom: 0;
+}
+
+.more-text {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    
+    transition: max-height 0.4s ease, opacity 0.3s ease 0.1s;
+}
+
+.more-text p {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #666;
+    margin-top: 20px;
+    border-top: 1px solid var(--lightgray);
+    padding-top: 15px;
+}
+
+/* === ЭФФЕКТ ПРИ НАВЕДЕНИИ === */
+
+.info-card:hover {
+    transform: scale(1.1); 
+    
+    z-index: 10; 
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.info-card:hover .more-text {
+    max-height: 400px; 
+    opacity: 1;
+}
+
+/* =====================================================
+   КАЛЬКУЛЯТОР — ВЕРХНИЕ НАСТРОЙКИ
 ===================================================== */
 
 .calc-screen-wrapper {
@@ -94,16 +202,19 @@ h1, h2, h3 {
 }
 
 .calc-top {
-    position: sticky;
-    top: 70px;
-    z-index: 900;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--lightgray);
-    padding: 15px 20px; 
-    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    background: #ffffff; 
+    padding: 30px 20px 10px; 
+    box-shadow: none;
+    border-bottom: none;
     margin-bottom: 10px; 
 }
+
+.calc-top h2 {
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    text-align: center;
+}
+
 
 .calc-top-inner {
     max-width: 1100px;
@@ -148,7 +259,7 @@ h1, h2, h3 {
 }
 
 input[type="range"] {
-    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     height: 6px;
     background: transparent;
@@ -157,6 +268,7 @@ input[type="range"] {
     z-index: 2;
 }
 
+/* Трек */
 input[type="range"]::-webkit-slider-runnable-track {
     width: 100%;
     height: 6px;
@@ -202,7 +314,7 @@ input[type="range"]::-moz-range-thumb {
 .floating-value {
     position: absolute;
     top: -30px;
-    left: 0;
+    left: 0; 
     transform: translateX(-50%); 
     font-size: 18px;
     font-weight: bold;
@@ -249,7 +361,6 @@ input[type="range"]::-moz-range-thumb {
     border-radius: 24px; 
     box-sizing: border-box; 
 }
-
 .placeholder-box {
     background: var(--lightgray);
     display: flex;
@@ -259,14 +370,11 @@ input[type="range"]::-moz-range-thumb {
     color: var(--text);
     padding: 40px;
 }
-
 .placeholder-text {
     font-size: 24px;
     line-height: 1.5;
     max-width: 700px;
 }
-
-
 .result-panel {
     background: var(--card);
     display: grid;
@@ -276,28 +384,23 @@ input[type="range"]::-moz-range-thumb {
     box-shadow: 0 10px 40px rgba(0,0,0,0.08);
     border: 1px solid var(--lightgray); 
 }
-
 .result-info {
-    padding: 50px;
+    padding: 50px; 
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
-
 .result-info h2 { 
     font-size: 36px; 
     color: var(--main); 
     margin-bottom: 25px; 
 }
-
 .result-info p { 
     font-size: 18px; 
     line-height: 1.6; 
     margin-bottom: 15px; 
     color: #444;
 }
-
-
 .result-meta {
     margin-top: 30px;
 }
@@ -330,7 +433,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .error-message { 
     width: 100%;
-    min-height: 500px; 
+    min-height: 500px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -345,7 +448,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* =====================================================
-   НИЖНИЕ НАСТРОЙКИ и MULTISELECT
+   НИЖНИЕ НАСТРОЙКИ & MULTISELECT
 ===================================================== */
 
 .bottom-settings {
@@ -435,14 +538,12 @@ input[type="range"]::-moz-range-thumb {
 .tag-close:hover { opacity: 1; }
 
 /* =====================================================
-  мобилки
+   ADAPTIVE
 ===================================================== */
 @media (max-width: 900px) {
     .result-panel { grid-template-columns: 1fr; }
     .result-image-block { height: 250px; min-height: auto; }
     .top-controls { flex-direction: column; align-items: center; }
     .dropdown-list { left: 0; top: 110%; width: 100%; }
-    /* На мобильных можно уменьшить высоту, чтобы не было пустых полей */
     .placeholder-box, .result-panel { min-height: auto; }
 }
-
