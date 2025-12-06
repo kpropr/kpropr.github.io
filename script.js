@@ -20,7 +20,7 @@ const APPLIANCES = [
   { id:'pc', name:'Компьютер', power_kW:0.25 }
 ];
 
-// DOM
+// =================== DOM и Состояние ===================
 const $ = id => document.getElementById(id);
 const panelAreaIn = $('panelArea');
 const panelAreaTxt = $('panelAreaVal');
@@ -38,6 +38,7 @@ let selectedApplianceIds = [];
 
 // =================== Утилиты ===================
 function formatNum(n){ return Math.round(n).toLocaleString('ru-RU'); }
+
 function updateSliderFill(slider, textElement) {
     const val = parseFloat(slider.value);
     const min = parseFloat(slider.min);
@@ -50,7 +51,7 @@ function updateSliderFill(slider, textElement) {
     }
 }
 
-// =================== 1. Города ===================
+// =================== Загрузка Городов ===================
 function loadCities(){
   fetch('cities.json')
     .then(r => r.json())
@@ -67,11 +68,15 @@ function loadCities(){
       });
       regionSelect.selectedIndex = defaultIndex;
       selectedCity = list[defaultIndex];
+      // Запуск расчета после загрузки города
+      if (panelAreaIn.value > 0 || peakPowerIn.value > 0) {
+        runCalculationAndRender();
+      }
     })
     .catch(e => console.warn('cities.json не найден', e));
 }
 
-// =================== 2. Логика Multiselect ===================
+// =================== Логика Multiselect ===================
 function renderDropdown() {
     appliancesList.innerHTML = '';
     APPLIANCES.forEach(app => {
@@ -123,7 +128,7 @@ function updateUIFromAppliances() {
     renderTags();
     renderDropdown(); 
     syncPeakFromAppliances(); 
-    runCalculationAndRender();
+    runCalculationAndRender(); 
 }
 
 function resetAppliances() {
@@ -146,7 +151,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// =================== 3. Синхронизация ===================
+// =================== Синхронизация Мощности ===================
 function syncPeakFromAppliances(){
   if(selectedApplianceIds.length === 0) return; 
 
@@ -160,7 +165,7 @@ function syncPeakFromAppliances(){
   updateSliderFill(peakPowerIn, peakPowerTxt);
 }
 
-// =================== 4. Основной Расчет ===================
+// =================== Основной Расчет ===================
 function runCalculationAndRender(){
   const area = Number(panelAreaIn.value);
   const peak = Number(peakPowerIn.value);
@@ -233,24 +238,30 @@ function runCalculationAndRender(){
 
 // =================== Инициализация ===================
 document.addEventListener('DOMContentLoaded', ()=>{
-  loadCities();
-  updateSliderFill(panelAreaIn, panelAreaTxt);
-  updateSliderFill(peakPowerIn, peakPowerTxt);
+    loadCities();
+    updateSliderFill(panelAreaIn, panelAreaTxt);
+    updateSliderFill(peakPowerIn, peakPowerTxt);
+    panelAreaIn.addEventListener('input', ()=>{
+        runCalculationAndRender(); 
+    });
 
-  panelAreaIn.addEventListener('input', ()=>{
-    runCalculationAndRender();
-  });
-
-  peakPowerIn.addEventListener('input', (e)=>{
-    if (e.isTrusted) {
-       resetAppliances();
-    }
-    runCalculationAndRender();
-  });
-
-  regionSelect.addEventListener('change', ()=>{
-    const idx = parseInt(regionSelect.value, 10);
-    selectedCity = citiesData[idx];
-    if(panelAreaIn.value > 0) runCalculationAndRender();
-  });
+    peakPowerIn.addEventListener('input', (e)=>{
+        if (e.isTrusted) {
+           resetAppliances();
+        }
+        runCalculationAndRender();
+    });
+    regionSelect.addEventListener('change', ()=>{
+        const idx = parseInt(regionSelect.value, 10);
+        selectedCity = citiesData[idx];
+        if(panelAreaIn.value > 0 || peakPowerIn.value > 0) runCalculationAndRender();
+    });
+    const modal = document.getElementById("userTypeModal");
+    const modalBtns = document.querySelectorAll(".modal-btn");
+    
+    modalBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+    });
 });
