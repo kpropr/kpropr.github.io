@@ -7,10 +7,19 @@
 </head>
 
 <body>
+<div id="userTypeModal" class="modal-overlay">
+    <div class="modal-box">
+        <h2>Я -</h2>
+        <div class="modal-buttons">
+            <button class="modal-btn" data-type="phys">Физическое лицо</button>
+            <button class="modal-btn" data-type="legal">Юридическое лицо</button>
+        </div>
+    </div>
+</div>
 
 <header class="main-header">
-    <a href="index.html" class="logo">
-        <img src="img/logo.png" alt="Unigreen Energy">
+    <a href="index.html" class="logo-text">
+        SUNCALC
     </a>
     <nav class="header-nav">
         <a href="calculator.html">Калькулятор</a>
@@ -21,12 +30,9 @@
     
     <div class="calc-top">
         <div class="calc-top-inner">
-            <h2>Параметры объекта</h2>
-
-            <div class="top-controls">
+            <div class="top-controls"> 
                 <div class="top-block">
                     <label>Площадь, м²</label>
-                    
                     <div class="range-wrapper">
                         <div id="panelAreaVal" class="floating-value">0</div>
                         <input type="range" id="panelArea" min="0" max="150" value="0">
@@ -57,9 +63,10 @@
                     <select id="regionSelect" class="region-select"></select>
                 </div>
             </div>
+            
         </div>
     </div>
-
+    
     <div class="results-section" id="resultsSection">
         <div class="placeholder-box">
             <div class="placeholder-text">
@@ -68,25 +75,25 @@
             </div>
         </div>
     </div>
-</div>
-
-<div class="bottom-settings">
-    <h2>Дополнительные параметры</h2>
-    <h3>Полезная площадь </h3>
-    <input type="text" id="usableArea" value="Расчет в разработке..." readonly>
-
-    <h3 style="margin-top:40px;">Электроприборы</h3>
     
-    <div class="multiselect-container">
-        
-        <div class="dropdown-wrapper">
-            <button class="dropdown-btn" id="appliancesBtn">Выбрать приборы</button>
-            <div class="dropdown-list" id="appliancesList">
-                </div>
-        </div>
+    <div class="bottom-settings">
+        <h2>Дополнительные параметры</h2>
+        <h3>Полезная площадь </h3>
+        <input type="text" id="usableArea" value="Расчет в разработке..." readonly>
 
-        <div class="selected-tags" id="selectedTags"></div>
+        <h3 style="margin-top:40px;">Электроприборы</h3>
         
+        <div class="multiselect-container">
+            
+            <div class="dropdown-wrapper">
+                <button class="dropdown-btn" id="appliancesBtn">Выбрать приборы</button>
+                <div class="dropdown-list" id="appliancesList">
+                    </div>
+            </div>
+
+            <div class="selected-tags" id="selectedTags"></div>
+            
+        </div>
     </div>
 </div>
 
