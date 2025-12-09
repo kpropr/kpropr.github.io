@@ -1,3 +1,5 @@
+import emailjs from 'https://cdn.emailjs.com/sdk/v4/email.min.js';
+
 // =================== Конфигурация ===================
 const KITS = [
   { id: 'kit-1',  name: 'Комплект 1 кВт',  power_kW: 1,  area_m2: 8,  price_rub: 114990 },
@@ -35,6 +37,7 @@ const appliancesList = $('appliancesList');
 let citiesData = [];
 let selectedCity = null;
 let selectedApplianceIds = []; 
+let userType = "Не указано"; 
 
 // =================== Утилиты ===================
 function formatNum(n){ return Math.round(n).toLocaleString('ru-RU'); }
@@ -68,7 +71,6 @@ function loadCities(){
       });
       regionSelect.selectedIndex = defaultIndex;
       selectedCity = list[defaultIndex];
-      // Запуск расчета после загрузки города
       if (panelAreaIn.value > 0 || peakPowerIn.value > 0) {
         runCalculationAndRender();
       }
@@ -165,6 +167,27 @@ function syncPeakFromAppliances(){
   updateSliderFill(peakPowerIn, peakPowerTxt);
 }
 
+// =================== АВТОМАТИЧЕСКАЯ ОТПРАВКА ЗАЯВКИ ===================
+function sendRequest(kitName, price, area, power) {
+    const regionText = regionSelect.options[regionSelect.selectedIndex].text;
+    const templateParams = {
+        user_type: userType, 
+        kit_name: kitName,   
+        price: price,        
+        area: area,          
+        power: power,        
+        region: regionText,  
+    };
+    emailjs.send('service_h7p8kf9', 'template_ha9iwvu', templateParams) 
+        .then(function(response) {
+            console.log('SUCCESS!', response.status, response.text);
+            alert(' Ваша заявка отправлена! Мы скоро свяжемся с вами.'); 
+        }, function(error) {
+            console.log('FAILED...', error);
+            alert(' Ошибка при отправке. Пожалуйста, попробуйте позже.'); 
+        });
+}
+
 // =================== Основной Расчет ===================
 function runCalculationAndRender(){
   const area = Number(panelAreaIn.value);
@@ -219,6 +242,8 @@ function runCalculationAndRender(){
         Подобран вариант меньше.</em>
       </p>`;
   }
+
+  // --- ВЫВОД РЕЗУЛЬТАТА  ---
   resultsSection.innerHTML = `
     <div class="result-panel">
         <div class="result-info">
@@ -228,9 +253,14 @@ function runCalculationAndRender(){
             <p>Экономия: <strong>${formatNum(savings)} ₽/год</strong></p>
             ${warningHTML}
             <div class="price">${formatNum(finalKit.price_rub)} ₽</div>
+            
+            <button class="order-btn" onclick="sendRequest('${finalKit.name}', '${formatNum(finalKit.price_rub)}', '${area}', '${peak}')">
+                Оставить заявку
+            </button>
+
         </div>
         <div class="result-image-block">
-            <img src="img/${finalKit.id}.jpg" alt="${finalKit.name}" onerror="this.src='https://via.placeholder.com/800x600?text=HEVEL+SOLAR'">
+            <img src="img/${finalKit.id}.jpg" alt="${finalKit.name}" onerror="this.src='https://via.placeholder.com/800x600?text=SUNCALC+KIT'">
         </div>
     </div>
   `;
@@ -238,9 +268,12 @@ function runCalculationAndRender(){
 
 // =================== Инициализация ===================
 document.addEventListener('DOMContentLoaded', ()=>{
+    emailjs.init("WG50t7OIdHKqLSsWW"); 
+    console.log("EmailJS инициализирован.");
     loadCities();
     updateSliderFill(panelAreaIn, panelAreaTxt);
     updateSliderFill(peakPowerIn, peakPowerTxt);
+    
     panelAreaIn.addEventListener('input', ()=>{
         runCalculationAndRender(); 
     });
@@ -256,11 +289,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
         selectedCity = citiesData[idx];
         if(panelAreaIn.value > 0 || peakPowerIn.value > 0) runCalculationAndRender();
     });
+
     const modal = document.getElementById("userTypeModal");
     const modalBtns = document.querySelectorAll(".modal-btn");
     
     modalBtns.forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (e) => {
+            userType = e.target.textContent; 
             modal.style.display = "none";
         });
     });
