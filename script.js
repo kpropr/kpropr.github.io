@@ -1,4 +1,4 @@
-import emailjs from 'https://cdn.emailjs.com/sdk/v4/email.min.js';
+import emailjs from 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/+esm';
 
 // =================== Конфигурация ===================
 const KITS = [
@@ -29,6 +29,8 @@ const panelAreaTxt = $('panelAreaVal');
 const peakPowerIn = $('peakPower');
 const peakPowerTxt = $('peakVal');
 const regionSelect = $('regionSelect');
+const userNameIn = $('userName');
+const userPhoneIn = $('userPhone');
 const resultsSection = $('resultsSection');
 const selectedTagsContainer = $('selectedTags');
 const appliancesBtn = $('appliancesBtn');
@@ -37,7 +39,7 @@ const appliancesList = $('appliancesList');
 let citiesData = [];
 let selectedCity = null;
 let selectedApplianceIds = []; 
-let userType = "Не указано"; 
+let userType = "Не указано"; // Переменная для хранения типа клиента
 
 // =================== Утилиты ===================
 function formatNum(n){ return Math.round(n).toLocaleString('ru-RU'); }
@@ -71,6 +73,7 @@ function loadCities(){
       });
       regionSelect.selectedIndex = defaultIndex;
       selectedCity = list[defaultIndex];
+      // Запуск расчета после загрузки города
       if (panelAreaIn.value > 0 || peakPowerIn.value > 0) {
         runCalculationAndRender();
       }
@@ -167,27 +170,37 @@ function syncPeakFromAppliances(){
   updateSliderFill(peakPowerIn, peakPowerTxt);
 }
 
-// =================== АВТОМАТИЧЕСКАЯ ОТПРАВКА ЗАЯВКИ ===================
+// Функция отправки заявки
 function sendRequest(kitName, price, area, power) {
     const regionText = regionSelect.options[regionSelect.selectedIndex].text;
+    const userName = userNameIn.value.trim();
+    const userPhone = userPhoneIn.value.trim();
+    const userType = document.querySelector('.modal-btn[data-type]').dataset.type === 'phys' ? 'Физ. лицо' : 'Юр. лицо';
+
+    if (!userName || !userPhone) {
+        alert('Пожалуйста, укажите Ваше имя и контактный телефон.');
+        return;
+    }
     const templateParams = {
-        user_type: userType, 
-        kit_name: kitName,   
-        price: price,        
-        area: area,          
-        power: power,        
-        region: regionText,  
+        user_name: userName,
+        user_phone: userPhone,
+        user_type: userType,
+        kit_name: kitName,
+        price: formatNum(price),
+        area: area,
+        power: power,
+        region: regionText
     };
-    emailjs.send('service_h7p8kf9', 'template_ha9iwvu', templateParams) 
-        .then(function(response) {
-            console.log('SUCCESS!', response.status, response.text);
-            alert(' Ваша заявка отправлена! Мы скоро свяжемся с вами.'); 
-        }, function(error) {
-            console.log('FAILED...', error);
-            alert(' Ошибка при отправке. Пожалуйста, попробуйте позже.'); 
+    emailjs.send('service_h7p8kf9', 'template_ha9iwvu', templateParams)
+        .then(() => {
+            alert(`Заявка от ${userName} принята! Скоро с Вами свяжутся.`);
+        })
+        .catch((err) => {
+             console.error('Ошибка отправки:', err);
+             alert('Произошла ошибка при отправке заявки. Попробуйте позже.');
         });
 }
-
+window.sendRequest = sendRequest; 
 // =================== Основной Расчет ===================
 function runCalculationAndRender(){
   const area = Number(panelAreaIn.value);
@@ -243,7 +256,7 @@ function runCalculationAndRender(){
       </p>`;
   }
 
-  // --- ВЫВОД РЕЗУЛЬТАТА  ---
+  // --- ВЫВОД РЕЗУЛЬТАТА (ДОБАВЛЕНА КНОПКА) ---
   resultsSection.innerHTML = `
     <div class="result-panel">
         <div class="result-info">
@@ -254,11 +267,11 @@ function runCalculationAndRender(){
             ${warningHTML}
             <div class="price">${formatNum(finalKit.price_rub)} ₽</div>
             
-            <button class="order-btn" onclick="sendRequest('${finalKit.name}', '${formatNum(finalKit.price_rub)}', '${area}', '${peak}')">
-                Оставить заявку
+            <button class="primary-btn order-btn" 
+                onclick="sendRequest('${finalKit.name}', '${finalKit.price_rub}', '${finalKit.area_m2}', '${finalKit.power_kW}')">
+                    Оставить заявку
             </button>
-
-        </div>
+            </div>
         <div class="result-image-block">
             <img src="img/${finalKit.id}.jpg" alt="${finalKit.name}" onerror="this.src='https://via.placeholder.com/800x600?text=SUNCALC+KIT'">
         </div>
@@ -268,7 +281,9 @@ function runCalculationAndRender(){
 
 // =================== Инициализация ===================
 document.addEventListener('DOMContentLoaded', ()=>{
-    emailjs.init("WG50t7OIdHKqLSsWW"); 
+    emailjs.init({
+        publicKey: "WG50t7OIdHKqLSsWW", 
+    });
     console.log("EmailJS инициализирован.");
     loadCities();
     updateSliderFill(panelAreaIn, panelAreaTxt);
@@ -290,11 +305,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if(panelAreaIn.value > 0 || peakPowerIn.value > 0) runCalculationAndRender();
     });
 
+    // Обработка модального окна и сохранение выбора
     const modal = document.getElementById("userTypeModal");
     const modalBtns = document.querySelectorAll(".modal-btn");
     
     modalBtns.forEach(btn => {
         btn.addEventListener("click", (e) => {
+            // Сохраняем текст кнопки (Физическое лицо / Юридическое лицо)
             userType = e.target.textContent; 
             modal.style.display = "none";
         });
