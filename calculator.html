@@ -30,6 +30,24 @@
     
     <div class="calc-top">
         <div class="calc-top-inner">
+            
+            <div class="goal-block-top">
+                <label class="goal-main-label">Цель подключения</label>
+                <div id="goalSelectorContainer" class="goal-selector">
+                    <input type="radio" id="goalEconomy" name="goalType" value="economy" checked>
+                    <label for="goalEconomy" class="goal-option">
+                        <span class="goal-circle"></span>
+                        Экономия
+                    </label>
+                    
+                    <input type="radio" id="goalAutonomy" name="goalType" value="autonomy">
+                    <label for="goalAutonomy" class="goal-option">
+                        <span class="goal-circle"></span>
+                        Энергообеспечение
+                    </label>
+                </div>
+            </div>
+            
             <div class="top-controls"> 
                 <div class="top-block">
                     <label>Площадь, м²</label>
@@ -37,30 +55,37 @@
                         <div id="panelAreaVal" class="floating-value">0</div>
                         <input type="range" id="panelArea" min="0" max="150" value="0">
                     </div>
-                    
-                    <div class="slider-labels-static">
-                        <span>0</span>
-                        <span>150</span>
-                    </div>
+                    <div class="slider-labels-static"><span>0</span><span>150</span></div>
                 </div>
 
                 <div class="top-block">
                     <label>Мощность, кВт</label>
-                    
                     <div class="range-wrapper">
                         <div id="peakVal" class="floating-value">0</div>
                         <input type="range" id="peakPower" min="0" max="20" value="0" step="0.1">
                     </div>
-
-                    <div class="slider-labels-static">
-                        <span>0</span>
-                        <span>20</span>
-                    </div>
+                    <div class="slider-labels-static"><span>0</span><span>20</span></div>
                 </div>
 
                 <div class="top-block">
                     <label>Регион</label>
                     <select id="regionSelect" class="region-select"></select>
+                </div>
+            </div>
+            
+            <div class="extra-params-container-bottom">
+                <div class="extra-params-wrapper">
+                    <span class="extra-params-trigger">⚙️ Дополнительные параметры</span>
+                    <div class="extra-params-popup">
+                        <h3>Выберите электроприборы</h3>
+                        <div class="multiselect-container">
+                            <div class="dropdown-wrapper">
+                                <button class="dropdown-btn" id="appliancesBtn">Выбрать приборы</button>
+                                <div class="dropdown-list" id="appliancesList"></div>
+                            </div>
+                            <div class="selected-tags" id="selectedTags"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -73,23 +98,6 @@
                 Укажите площадь вашего объекта и пиковую мощность,<br>
                 и мы подберём для вас оптимальный готовый комплект
             </div>
-        </div>
-    </div>
-    
-   <div class="bottom-settings">
-        <h2>Дополнительные параметры</h2>
-        <h3>Ваше имя</h3>
-            <input type="text" id="userName" placeholder="Иван Петров">
-        <h3 style="margin-top:20px;">Ваш телефон</h3>
-            <input type="text" id="userPhone" placeholder="+7 (999) 123-45-67">
-        <h3 style="margin-top: 0;">Электроприборы</h3>
-        
-        <div class="multiselect-container">
-            <div class="dropdown-wrapper">
-                <button class="dropdown-btn" id="appliancesBtn">Выбрать приборы</button>
-                <div class="dropdown-list" id="appliancesList"></div>
-            </div>
-            <div class="selected-tags" id="selectedTags"></div>
         </div>
     </div>
 </div>
