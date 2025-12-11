@@ -1,4 +1,5 @@
 import emailjs from 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/+esm';
+import IMask from 'https://cdn.jsdelivr.net/npm/imask@7/+esm';
 
 // =================== Конфигурация ===================
 const KITS = [
@@ -22,26 +23,15 @@ const APPLIANCES = [
   { id:'pc', name:'Компьютер', power_kW:0.25 }
 ];
 
-// =================== DOM и Состояние ===================
+// =================== Глобальные данные и Утилиты ===================
 const $ = id => document.getElementById(id);
-const panelAreaIn = $('panelArea');
-const panelAreaTxt = $('panelAreaVal');
-const peakPowerIn = $('peakPower');
-const peakPowerTxt = $('peakVal');
-const regionSelect = $('regionSelect');
-const userNameIn = $('userName');
-const userPhoneIn = $('userPhone');
-const resultsSection = $('resultsSection');
-const selectedTagsContainer = $('selectedTags');
-const appliancesBtn = $('appliancesBtn');
-const appliancesList = $('appliancesList');
 
 let citiesData = [];
 let selectedCity = null;
 let selectedApplianceIds = []; 
-let userType = "Не указано"; // Переменная для хранения типа клиента
+let phoneMask = null;
+window.currentUserType = "Не указано"; 
 
-// =================== Утилиты ===================
 function formatNum(n){ return Math.round(n).toLocaleString('ru-RU'); }
 
 function updateSliderFill(slider, textElement) {
@@ -57,24 +47,27 @@ function updateSliderFill(slider, textElement) {
 }
 
 // =================== Загрузка Городов ===================
-function loadCities(){
+
+function loadCities(regionSelectElement){
   fetch('cities.json')
     .then(r => r.json())
     .then(list => {
       citiesData = list;
-      regionSelect.innerHTML = '';
+      regionSelectElement.innerHTML = '';
       let defaultIndex = 0;
       list.forEach((c,i)=>{
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = c.city; 
-        regionSelect.appendChild(opt);
+        regionSelectElement.appendChild(opt);
         if (c.city.toLowerCase().includes('москв')) defaultIndex = i;
       });
-      regionSelect.selectedIndex = defaultIndex;
+      regionSelectElement.selectedIndex = defaultIndex;
       selectedCity = list[defaultIndex];
-      // Запуск расчета после загрузки города
-      if (panelAreaIn.value > 0 || peakPowerIn.value > 0) {
+      const panelAreaIn = $('panelArea');
+      const peakPowerIn = $('peakPower');
+
+      if (panelAreaIn && peakPowerIn && (panelAreaIn.value > 0 || peakPowerIn.value > 0)) {
         runCalculationAndRender();
       }
     })
@@ -82,8 +75,8 @@ function loadCities(){
 }
 
 // =================== Логика Multiselect ===================
-function renderDropdown() {
-    appliancesList.innerHTML = '';
+function renderDropdown(appliancesListElement, selectedApplianceIds, toggleAppliance) {
+    appliancesListElement.innerHTML = '';
     APPLIANCES.forEach(app => {
         const item = document.createElement('div');
         item.className = 'dropdown-item';        
@@ -95,27 +88,30 @@ function renderDropdown() {
             e.stopPropagation(); 
             toggleAppliance(app.id);
         };
-        appliancesList.appendChild(item);
+        appliancesListElement.appendChild(item);
     });
 }
 
-function renderTags() {
-    selectedTagsContainer.innerHTML = '';
+function renderTags(selectedTagsContainerElement, selectedApplianceIds, removeAppliance) {
+    selectedTagsContainerElement.innerHTML = '';
     selectedApplianceIds.forEach(id => {
         const app = APPLIANCES.find(a => a.id === id);
         if (!app) return;
 
         const tag = document.createElement('div');
         tag.className = 'tag-pill';
-        tag.innerHTML = `
-            ${app.name} 
-            <div class="tag-close" onclick="removeAppliance('${id}')">✕</div>
-        `;
-        selectedTagsContainer.appendChild(tag);
+        const closeBtn = document.createElement('div');
+        closeBtn.className = 'tag-close';
+        closeBtn.textContent = '✕';
+        closeBtn.onclick = () => removeAppliance(id);
+        
+        tag.textContent = `${app.name} `;
+        tag.appendChild(closeBtn);
+        selectedTagsContainerElement.appendChild(tag);
     });
 }
 
-function toggleAppliance(id) {
+function toggleAppliance(id, updateUIFromAppliances) {
     if (selectedApplianceIds.includes(id)) {
         selectedApplianceIds = selectedApplianceIds.filter(item => item !== id);
     } else {
@@ -124,40 +120,31 @@ function toggleAppliance(id) {
     updateUIFromAppliances();
 }
 
-function removeAppliance(id) {
+function removeAppliance(id, updateUIFromAppliances) {
     selectedApplianceIds = selectedApplianceIds.filter(item => item !== id);
     updateUIFromAppliances();
 }
 
 function updateUIFromAppliances() {
-    renderTags();
-    renderDropdown(); 
-    syncPeakFromAppliances(); 
+    const selectedTagsContainer = $('selectedTags');
+    const appliancesList = $('appliancesList');
+    const peakPowerIn = $('peakPower');
+    const peakPowerTxt = $('peakVal');
+
+    renderTags(selectedTagsContainer, selectedApplianceIds, (id) => removeAppliance(id, updateUIFromAppliances));
+    renderDropdown(appliancesList, selectedApplianceIds, (id) => toggleAppliance(id, updateUIFromAppliances));
+    syncPeakFromAppliances(peakPowerIn, peakPowerTxt); 
     runCalculationAndRender(); 
 }
 
-function resetAppliances() {
+function resetAppliances(updateUIFromAppliances) {
     if (selectedApplianceIds.length > 0) {
         selectedApplianceIds = [];
-        renderTags();
-        renderDropdown();
+        updateUIFromAppliances();
     }
 }
 
-appliancesBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    renderDropdown();
-    appliancesList.classList.toggle('show');
-});
-
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.multiselect-container')) {
-        appliancesList.classList.remove('show');
-    }
-});
-
-// =================== Синхронизация Мощности ===================
-function syncPeakFromAppliances(){
+function syncPeakFromAppliances(peakPowerInElement, peakPowerTxtElement){
   if(selectedApplianceIds.length === 0) return; 
 
   let peakSum = 0;
@@ -165,49 +152,101 @@ function syncPeakFromAppliances(){
       const app = APPLIANCES.find(a => a.id === id);
       if(app) peakSum += app.power_kW;
   });
-
-  peakPowerIn.value = peakSum.toFixed(1);
-  updateSliderFill(peakPowerIn, peakPowerTxt);
+  
+  peakPowerInElement.value = peakSum.toFixed(1);
+  updateSliderFill(peakPowerInElement, peakPowerTxtElement);
 }
 
-// Функция отправки заявки
-function sendRequest(kitName, price, area, power) {
-    const regionText = regionSelect.options[regionSelect.selectedIndex].text;
-    const userName = userNameIn.value.trim();
-    const userPhone = userPhoneIn.value.trim();
-    const userType = document.querySelector('.modal-btn[data-type]').dataset.type === 'phys' ? 'Физ. лицо' : 'Юр. лицо';
+// =================== Функции Формы (Глобальные) ===================
 
-    if (!userName || !userPhone) {
-        alert('Пожалуйста, укажите Ваше имя и контактный телефон.');
+window.showRequestForm = function() {
+    const showFormBtn = $('showFormBtn');
+    const requestForm = $('requestForm');
+    
+    if(!showFormBtn || !requestForm) return;
+
+    showFormBtn.style.display = 'none';
+    requestForm.style.display = 'flex';
+
+    const userPhoneInput = $('userPhone');
+    if (userPhoneInput && !phoneMask) {
+        phoneMask = IMask(userPhoneInput, {
+            mask: '+{7} (000) 000-00-00',
+            lazy: false, 
+            overwrite: true,
+            autofix: true,
+        });
+        userPhoneInput.focus();
+    }
+};
+
+window.sendFinalRequest = function(kitName, price, area, power) {
+    const userNameInput = $('userName');
+    const userPhoneInput = $('userPhone');
+    const regionSelect = $('regionSelect');
+    
+    if(!userNameInput || !userPhoneInput || !regionSelect) return;
+
+    const name = userNameInput.value.trim();
+    const phone = phoneMask ? phoneMask.unmaskedValue : userPhoneInput.value.trim().replace(/\D/g,'');
+    const selectedGoalRadio = document.querySelector('input[name="goalType"]:checked');
+    const goalText = selectedGoalRadio ? selectedGoalRadio.nextElementSibling.textContent.trim() : "Не выбрана";
+
+    const regionText = regionSelect.options[regionSelect.selectedIndex].text;
+    
+    if(!name || phone.length < 10) { 
+        alert("Пожалуйста, введите имя и корректный номер телефона.");
         return;
     }
+
     const templateParams = {
-        user_name: userName,
-        user_phone: userPhone,
-        user_type: userType,
+        user_name: name,
+        user_phone: phoneMask ? phoneMask.value : userPhoneInput.value,
+        user_type: window.currentUserType,
+        goal: goalText,
         kit_name: kitName,
         price: formatNum(price),
         area: area,
         power: power,
         region: regionText
     };
+
     emailjs.send('service_h7p8kf9', 'template_ha9iwvu', templateParams)
         .then(() => {
-            alert(`Заявка от ${userName} принята! Скоро с Вами свяжутся.`);
+            alert(`Спасибо, ${name}! Ваша заявка принята. Менеджер свяжется с вами.`);
+            const requestForm = $('requestForm');
+            const showFormBtn = $('showFormBtn');
+            if(requestForm) requestForm.style.display = 'none';
+            if(showFormBtn) showFormBtn.style.display = 'block';
         })
         .catch((err) => {
              console.error('Ошибка отправки:', err);
              alert('Произошла ошибка при отправке заявки. Попробуйте позже.');
         });
-}
-window.sendRequest = sendRequest; 
+};
+
 // =================== Основной Расчет ===================
 function runCalculationAndRender(){
+  const panelAreaIn = $('panelArea');
+  const peakPowerIn = $('peakPower');
+  const regionSelect = $('regionSelect');
+  const resultsSection = $('resultsSection');
+  const panelAreaTxt = $('panelAreaVal');
+  const peakPowerTxt = $('peakVal');
+    
+  if (!panelAreaIn || !peakPowerIn || !regionSelect || !resultsSection || !panelAreaTxt || !peakPowerTxt) {
+      console.error("Не удалось найти все необходимые элементы DOM для расчета.");
+      return; 
+  }
+
   const area = Number(panelAreaIn.value);
   const peak = Number(peakPowerIn.value);
   
   updateSliderFill(panelAreaIn, panelAreaTxt);
   updateSliderFill(peakPowerIn, peakPowerTxt);
+
+  const selectedGoalRadio = document.querySelector('input[name="goalType"]:checked');
+  const goalText = selectedGoalRadio ? selectedGoalRadio.nextElementSibling.textContent.trim() : "Не выбрана";
 
   if (area === 0 || peak === 0) {
     resultsSection.innerHTML = `
@@ -255,23 +294,30 @@ function runCalculationAndRender(){
         Подобран вариант меньше.</em>
       </p>`;
   }
-
-  // --- ВЫВОД РЕЗУЛЬТАТА (ДОБАВЛЕНА КНОПКА) ---
   resultsSection.innerHTML = `
     <div class="result-panel">
         <div class="result-info">
             <h2>${finalKit.name}</h2>
+            <p style="margin-bottom:5px; color:#666;">Цель: <strong>${goalText}</strong></p>
             <p>Площадь панелей: <strong>${finalKit.area_m2} м²</strong></p>
             <p>Выработка: <strong>${formatNum(annualGen)} кВт·ч/год</strong></p>
             <p>Экономия: <strong>${formatNum(savings)} ₽/год</strong></p>
             ${warningHTML}
             <div class="price">${formatNum(finalKit.price_rub)} ₽</div>
             
-            <button class="primary-btn order-btn" 
-                onclick="sendRequest('${finalKit.name}', '${finalKit.price_rub}', '${finalKit.area_m2}', '${finalKit.power_kW}')">
-                    Оставить заявку
+            <button class="primary-btn order-btn" id="showFormBtn" onclick="showRequestForm()">
+                Оставить заявку
             </button>
+
+            <div id="requestForm" class="request-form-hidden">
+                <input type="text" id="userName" placeholder="Ваше имя">
+                <input type="text" id="userPhone" placeholder="+7 (___) ___-__-__"> 
+                <button class="primary-btn order-btn" 
+                    onclick="sendFinalRequest('${finalKit.name}', '${finalKit.price_rub}', '${finalKit.area_m2}', '${finalKit.power_kW}')">
+                    Отправить менеджеру
+                </button>
             </div>
+        </div>
         <div class="result-image-block">
             <img src="img/${finalKit.id}.jpg" alt="${finalKit.name}" onerror="this.src='https://via.placeholder.com/800x600?text=SUNCALC+KIT'">
         </div>
@@ -281,38 +327,63 @@ function runCalculationAndRender(){
 
 // =================== Инициализация ===================
 document.addEventListener('DOMContentLoaded', ()=>{
+        const panelAreaIn = $('panelArea');
+    const panelAreaTxt = $('panelAreaVal');
+    const peakPowerIn = $('peakPower');
+    const peakPowerTxt = $('peakVal');
+    const regionSelect = $('regionSelect');
+    const appliancesBtn = $('appliancesBtn');
+    const appliancesList = $('appliancesList');
+    const selectedTagsContainer = $('selectedTags');
+    if (!panelAreaIn || !peakPowerIn || !regionSelect || !appliancesBtn || !appliancesList) {
+        console.error("Критическая ошибка: не найдены ключевые элементы интерфейса. Проверьте calculator.html");
+        return;
+    }    
     emailjs.init({
         publicKey: "WG50t7OIdHKqLSsWW", 
     });
     console.log("EmailJS инициализирован.");
-    loadCities();
+    loadCities(regionSelect); 
     updateSliderFill(panelAreaIn, panelAreaTxt);
     updateSliderFill(peakPowerIn, peakPowerTxt);
-    
-    panelAreaIn.addEventListener('input', ()=>{
-        runCalculationAndRender(); 
-    });
-
+    const updateUI = () => updateUIFromAppliances();
+    const goalRadioButtons = document.querySelectorAll('input[name="goalType"]');
+    goalRadioButtons.forEach(radio => radio.addEventListener('change', runCalculationAndRender));
+    panelAreaIn.addEventListener('input', runCalculationAndRender);
     peakPowerIn.addEventListener('input', (e)=>{
-        if (e.isTrusted) {
-           resetAppliances();
-        }
+        if (e.isTrusted) resetAppliances(updateUI); 
         runCalculationAndRender();
     });
+    
     regionSelect.addEventListener('change', ()=>{
         const idx = parseInt(regionSelect.value, 10);
         selectedCity = citiesData[idx];
         if(panelAreaIn.value > 0 || peakPowerIn.value > 0) runCalculationAndRender();
     });
 
-    // Обработка модального окна и сохранение выбора
+  
+    appliancesBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        renderDropdown(appliancesList, selectedApplianceIds, (id) => toggleAppliance(id, updateUI));
+        appliancesList.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.multiselect-container')) {
+            appliancesList.classList.remove('show');
+        }
+    });
+
+ 
+    updateUI(); 
+
+
     const modal = document.getElementById("userTypeModal");
     const modalBtns = document.querySelectorAll(".modal-btn");
     
     modalBtns.forEach(btn => {
         btn.addEventListener("click", (e) => {
-            // Сохраняем текст кнопки (Физическое лицо / Юридическое лицо)
-            userType = e.target.textContent; 
+            window.currentUserType = e.target.textContent; 
             modal.style.display = "none";
         });
     });
