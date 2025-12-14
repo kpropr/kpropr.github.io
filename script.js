@@ -23,7 +23,7 @@ const APPLIANCES = [
   { id:'pc', name:'Компьютер', power_kW:0.25 }
 ];
 
-// =================== Глобальные данные и Утилиты ===================
+// =================== Глобальные данные и утилиты ===================
 const $ = id => document.getElementById(id);
 
 let citiesData = [];
@@ -180,35 +180,35 @@ window.showRequestForm = function() {
     }
 };
 
-window.sendFinalRequest = function(kitName, price, area, power) {
+window.sendFinalRequest = function(calculatedParams) {
     const userNameInput = $('userName');
     const userPhoneInput = $('userPhone');
-    const regionSelect = $('regionSelect');
+    const userEmailInput = $('userEmail'); 
     
-    if(!userNameInput || !userPhoneInput || !regionSelect) return;
+    if(!userNameInput || !userPhoneInput || !userEmailInput) return;
 
     const name = userNameInput.value.trim();
     const phone = phoneMask ? phoneMask.unmaskedValue : userPhoneInput.value.trim().replace(/\D/g,'');
-    const selectedGoalRadio = document.querySelector('input[name="goalType"]:checked');
-    const goalText = selectedGoalRadio ? selectedGoalRadio.nextElementSibling.textContent.trim() : "Не выбрана";
-
-    const regionText = regionSelect.options[regionSelect.selectedIndex].text;
+    const email = userEmailInput.value.trim();
     
     if(!name || phone.length < 10) { 
         alert("Пожалуйста, введите имя и корректный номер телефона.");
         return;
     }
-
+    
     const templateParams = {
+        kit_name: calculatedParams.kit_name,
+        calculated_price: formatNum(calculatedParams.calculated_price),
+        area_m2: calculatedParams.area_m2,
+        power_kW: calculatedParams.power_kW,
+        goal_type: calculatedParams.goal_type,
+        appliances_list: calculatedParams.appliances_list,
+        city_name: calculatedParams.city_name,
+        
         user_name: name,
         user_phone: phoneMask ? phoneMask.value : userPhoneInput.value,
+        user_email: email || 'Не указан',
         user_type: window.currentUserType,
-        goal: goalText,
-        kit_name: kitName,
-        price: formatNum(price),
-        area: area,
-        power: power,
-        region: regionText
     };
 
     emailjs.send('service_h7p8kf9', 'template_ha9iwvu', templateParams)
@@ -218,6 +218,10 @@ window.sendFinalRequest = function(kitName, price, area, power) {
             const showFormBtn = $('showFormBtn');
             if(requestForm) requestForm.style.display = 'none';
             if(showFormBtn) showFormBtn.style.display = 'block';
+            
+            userNameInput.value = '';
+            userEmailInput.value = '';
+            if(phoneMask) phoneMask.value = '';
         })
         .catch((err) => {
              console.error('Ошибка отправки:', err);
@@ -294,6 +298,26 @@ function runCalculationAndRender(){
         Подобран вариант меньше.</em>
       </p>`;
   }
+    const selectedApplianceNames = selectedApplianceIds.map(id => {
+      const app = APPLIANCES.find(a => a.id === id);
+      return app ? app.name : '';
+  }).filter(name => name.length > 0).join(', ');
+  
+  const cityText = selectedCity ? selectedCity.city : 'Не выбран';
+  
+  const calculatedParams = {
+      kit_name: finalKit.name,
+      calculated_price: finalKit.price_rub,
+      area_m2: finalKit.area_m2,
+      power_kW: finalKit.power_kW,
+      goal_type: goalText,
+      appliances_list: selectedApplianceNames || 'Не указаны',
+      city_name: cityText
+  };
+  
+  const calculatedParamsJSON = JSON.stringify(calculatedParams).replace(/'/g, "\\'");
+
+
   resultsSection.innerHTML = `
     <div class="result-panel">
         <div class="result-info">
@@ -311,9 +335,10 @@ function runCalculationAndRender(){
 
             <div id="requestForm" class="request-form-hidden">
                 <input type="text" id="userName" placeholder="Ваше имя">
+                <input type="email" id="userEmail" placeholder="Ваш Email (необязательно)">
                 <input type="text" id="userPhone" placeholder="+7 (___) ___-__-__"> 
                 <button class="primary-btn order-btn" 
-                    onclick="sendFinalRequest('${finalKit.name}', '${finalKit.price_rub}', '${finalKit.area_m2}', '${finalKit.power_kW}')">
+                    onclick='sendFinalRequest(${calculatedParamsJSON})'>
                     Отправить менеджеру
                 </button>
             </div>
@@ -327,7 +352,7 @@ function runCalculationAndRender(){
 
 // =================== Инициализация ===================
 document.addEventListener('DOMContentLoaded', ()=>{
-        const panelAreaIn = $('panelArea');
+    const panelAreaIn = $('panelArea');
     const panelAreaTxt = $('panelAreaVal');
     const peakPowerIn = $('peakPower');
     const peakPowerTxt = $('peakVal');
@@ -335,19 +360,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const appliancesBtn = $('appliancesBtn');
     const appliancesList = $('appliancesList');
     const selectedTagsContainer = $('selectedTags');
+
     if (!panelAreaIn || !peakPowerIn || !regionSelect || !appliancesBtn || !appliancesList) {
         console.error("Критическая ошибка: не найдены ключевые элементы интерфейса. Проверьте calculator.html");
         return;
     }    
+    
     emailjs.init({
         publicKey: "WG50t7OIdHKqLSsWW", 
     });
     console.log("EmailJS инициализирован.");
+    
     loadCities(regionSelect); 
     updateSliderFill(panelAreaIn, panelAreaTxt);
     updateSliderFill(peakPowerIn, peakPowerTxt);
+    
     const updateUI = () => updateUIFromAppliances();
     const goalRadioButtons = document.querySelectorAll('input[name="goalType"]');
+    
     goalRadioButtons.forEach(radio => radio.addEventListener('change', runCalculationAndRender));
     panelAreaIn.addEventListener('input', runCalculationAndRender);
     peakPowerIn.addEventListener('input', (e)=>{
