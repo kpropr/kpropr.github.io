@@ -6,6 +6,7 @@
     --accent: rgb(250, 90, 0);    
     --gray: rgb(163, 166, 171);
     --lightgray: rgb(236, 236, 239);
+    
     --bg: #ffffff;
     --card: #ffffff;
     --text: #222;
@@ -70,6 +71,96 @@ h1, h2, h3 {
 .header-nav a:hover { color: var(--accent); }
 
 /* =====================================================
+   ГЛАВНАЯ СТРАНИЦА (index.html)
+===================================================== */
+
+.hero {
+    background: var(--main);
+    color: white;
+    padding: 60px 20px;
+    text-align: center;
+    background-image: url('img/hero_bg.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.hero h1 {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+
+.hero p {
+    font-size: 20px;
+    opacity: 0.9;
+}
+
+.info-section {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+    text-align: center;
+}
+
+.info-section h2 {
+    color: var(--main);
+    font-size: 30px;
+    margin-bottom: 30px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    text-align: left;
+}
+
+.info-card {
+    background: var(--card);
+    border: 1px solid var(--lightgray);
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    cursor: default; 
+    transition: box-shadow 0.2s;
+    align-self: start;
+}
+
+.info-card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); 
+}
+
+.info-card h3 {
+    color: var(--accent);
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.info-card .short-text {
+    font-size: 15px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.info-card .more-text {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+.info-card:hover .more-text {
+    will-change: max-height, opacity;
+    max-height: 300px;
+    opacity: 1;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--lightgray);
+}
+
+/* =====================================================
    КАЛЬКУЛЯТОР
 ===================================================== */
 .calc-screen-wrapper {
@@ -77,6 +168,7 @@ h1, h2, h3 {
     flex-direction: column;
     padding-bottom: 50px;
 }
+
 .calc-top {
     background: #ffffff; 
     padding: 30px 20px 10px; 
@@ -84,11 +176,13 @@ h1, h2, h3 {
     border-bottom: none;
     margin-bottom: 0px; 
 }
+
 .calc-top-inner {
     max-width: 1100px;
     margin: 0 auto;
     text-align: center;
 }
+
 .top-controls {
     display: flex;
     justify-content: space-around;
@@ -96,20 +190,23 @@ h1, h2, h3 {
     gap: 20px; 
     margin-top: 20px;
 }
+
 .top-block {
-    width: 280px;
+    width: 250px;
     text-align: center;
     padding: 0 10px;
 }
+
 .top-block label {
     display: block;
-    font-size: 14px;
+    font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: 25px; 
+    margin-bottom: 20px; 
     font-weight: 600;
     color: var(--main);
 }
+
 .region-select {
     width: 100%;
     padding: 10px;
@@ -119,8 +216,9 @@ h1, h2, h3 {
     font-size: 15px;
 }
 
+
 /* =====================================================
-   ЦЕЛЬ ПОДКЛЮЧЕНИЯ (Новый стиль кнопок)
+   ЦЕЛЬ ПОДКЛЮЧЕНИЯ
 ===================================================== */
 .goal-block-top {
     max-width: 600px;
@@ -140,9 +238,10 @@ h1, h2, h3 {
     display: flex;
     justify-content: center;
     gap: 30px;
+     padding-right: 15px;
 }
 .goal-selector input[type="radio"] {
-    display: none; /* Скрываем стандартный радио-инпут */
+    display: none; 
 }
 .goal-option {
     display: flex;
@@ -156,7 +255,7 @@ h1, h2, h3 {
     font-weight: 500;
     color: var(--text);
     transition: all 0.2s;
-    user-select: none; /* Чтобы текст не выделялся при нажатии */
+    user-select: none; 
 }
 .goal-option:hover {
     border-color: var(--main);
@@ -172,15 +271,14 @@ h1, h2, h3 {
     position: relative;
     transition: all 0.2s;
 }
-/* Активное состояние */
 .goal-selector input[type="radio"]:checked + .goal-option {
     border-color: var(--main);
     color: var(--main);
     font-weight: 600;
-    background: #e8f5e9; /* Светло-зеленый фон для выделения */
+    background: #e8f5e9; 
 }
 .goal-selector input[type="radio"]:checked + .goal-option .goal-circle {
-    background: var(--main); /* Зеленый цвет */
+    background: var(--main); 
     border-color: var(--main);
 }
 
@@ -190,7 +288,7 @@ h1, h2, h3 {
 .range-wrapper {
     position: relative; 
     width: 100%;
-    height: 40px; 
+    height: 34px; 
     display: flex;
     align-items: center;
 }
@@ -244,34 +342,33 @@ input[type="range"]::-moz-range-thumb {
 
 .floating-value {
     position: absolute;
-    top: -30px;
+    top: -20px;
     left: 0; 
     transform: translateX(-50%); 
-    font-size: 18px;
+    font-size: 15px;
     font-weight: bold;
     color: var(--main);
     pointer-events: none; 
-    white-space: nowrap;
-    transition: left 0.1s ease-out; 
 }
+
 .slider-labels-static {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 5px;
+    width: 100%;
+    padding: 0 2px;
+    box-sizing: border-box;
 }
+
 
 /* =====================================================
    ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ (POPUP)
 ===================================================== */
-.extra-params-container-bottom {
-    /* Контейнер для размещения слева под основными блоками */
-    max-width: 900px;
-    margin: 30px auto 0;
+.extra-params-container-left {
     width: 100%;
+    max-width: 1100px;
+    margin: 15px auto 0;
     text-align: left;
-    padding-left: 20px; /* Отступ слева от края */
+    padding-left: 20px;
     box-sizing: border-box;
 }
 
@@ -312,7 +409,6 @@ input[type="range"]::-moz-range-thumb {
     border: 1px solid #eee;
 }
 
-/* ФИКС: Держать окно открытым, пока курсор над wrapper */
 .extra-params-wrapper:hover .extra-params-popup { 
     display: block; 
 }
@@ -379,10 +475,11 @@ input[type="range"]::-moz-range-thumb {
     padding: 20px;
     display: flex;
     justify-content: center; 
-    min-height: calc(100vh - 250px); 
+    min-height: auto; 
     align-items: center; 
-    padding-top: 50px; 
+    padding-top: 20px; 
     padding-bottom: 50px;
+    align-items: flex-start;
 }
 
 .placeholder-box, .result-panel {
@@ -520,7 +617,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ============================
-      MODAL
+     MODAL
 ============================ */
 .modal-overlay {
     position: fixed;
@@ -583,8 +680,8 @@ input[type="range"]::-moz-range-thumb {
 
     .placeholder-box, .result-panel { min-height: auto; }
     
-    .extra-params-container-bottom {
-        max-width: 600px; /* Уменьшаем максимальную ширину для центрирования на мобильных */
+    .extra-params-container-left {
+        max-width: 600px; 
         padding-left: 0; 
         text-align: center; 
     }
