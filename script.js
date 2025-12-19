@@ -8,6 +8,12 @@ const KITS = [
   { id: 'kit-10', name: 'Комплект 10 кВт', power_kW: 10, area_m2: 74, price_rub: 677490 }
 ];
 
+const HYBRID_KITS = [
+  { id: 'hybrid_5',  name: 'Гибридная СЭС 5 кВт',  power_kW: 5,  area_m2: 32,  price_rub: 548590, batteries: 1 },
+  { id: 'hybrid_8',  name: 'Гибридная СЭС 8 кВт',  power_kW: 8,  area_m2: 53,  price_rub: 1191890, batteries: 3 },
+  { id: 'hybrid_15', name: 'Гибридная СЭС 15 кВт', power_kW: 15, area_m2: 100, price_rub: 2014590, batteries: 5 }
+];
+const BATT_CAP = 4.8;
 const SYSTEM_LOSS = 0.8;
 
 const APPLIANCES = [
@@ -204,6 +210,11 @@ window.sendFinalRequest = function(calculatedParams) {
         goal_type: calculatedParams.goal_type,
         appliances_list: calculatedParams.appliances_list,
         city_name: calculatedParams.city_name,
+        system_type: finalKit.batteries ? 'Гибридная СЭС' : 'Сетевая СЭС',
+        battery_count: finalKit.batteries ? `${finalKit.batteries} шт.` : '—',
+        battery_capacity: finalKit.batteries ? '4.8' : '—',
+        battery_total: finalKit.batteries ? (finalKit.batteries * 4.8).toFixed(1) : '—',
+
         
         user_name: name,
         user_phone: phoneMask ? phoneMask.value : userPhoneInput.value,
@@ -251,6 +262,7 @@ function runCalculationAndRender(){
 
   const selectedGoalRadio = document.querySelector('input[name="goalType"]:checked');
   const goalText = selectedGoalRadio ? selectedGoalRadio.nextElementSibling.textContent.trim() : "Не выбрана";
+  const currentGoal = selectedGoalRadio ? selectedGoalRadio.value : 'economy';
 
   if (area === 0 || peak === 0) {
     resultsSection.innerHTML = `
@@ -267,14 +279,16 @@ function runCalculationAndRender(){
   const pvout = selectedCity ? (selectedCity.pvout || 1100) : 1100;
 
   const requiredPower = peak * 0.8;
-  let idealKit = KITS.find(k => k.power_kW >= requiredPower);
-  if (!idealKit) idealKit = KITS[KITS.length - 1];
+
+const targetData = (currentGoal === 'autonomy') ? HYBRID_KITS : KITS;
+ 
+  let idealKit = targetData.find(k => k.power_kW >= requiredPower) || targetData[targetData.length - 1];
 
   let finalKit = idealKit;
   let isDowngraded = false;
 
   if (area < idealKit.area_m2) {
-     const possibleKits = [...KITS].reverse().filter(k => k.area_m2 <= area);
+    const possibleKits = [...targetData].reverse().filter(k => k.area_m2 <= area);
      if (possibleKits.length > 0) {
          finalKit = possibleKits[0];
          isDowngraded = true;
@@ -282,7 +296,7 @@ function runCalculationAndRender(){
          resultsSection.innerHTML = `
             <div class="error-message">
                 К сожалению, под указанную площадь (${area} м²) невозможно установить ни один стандартный комплект.<br>
-                Минимально необходимая площадь: ${KITS[0].area_m2} м².
+                    Минимально необходимая площадь: ${targetData[0].area_m2} м².
             </div>
          `;
          return;
@@ -305,8 +319,22 @@ function runCalculationAndRender(){
   
   const cityText = selectedCity ? selectedCity.city : 'Не выбран';
   
+let hybridText = '';
+let systemType = 'Сетевая СЭС';
+
+if (finalKit.batteries) {
+    systemType = 'Гибридная СЭС';
+
+    hybridText = `
+        <p>Аккумуляторы: <strong>${finalKit.batteries} × ${BATT_CAP} кВт·ч</strong></p>
+    `;
+}
+const systemNamePrefix = finalKit.batteries ? 'Гибридная СЭС' : 'Сетевая СЭС';
+const displayKitName = `${systemNamePrefix} ${finalKit.power_kW} кВт`;
+
+
   const calculatedParams = {
-      kit_name: finalKit.name,
+      kit_name: displayKitName,
       calculated_price: finalKit.price_rub,
       area_m2: finalKit.area_m2,
       power_kW: finalKit.power_kW,
@@ -321,18 +349,16 @@ function runCalculationAndRender(){
   resultsSection.innerHTML = `
     <div class="result-panel">
         <div class="result-info">
-            <h2>${finalKit.name}</h2>
-            <p style="margin-bottom:5px; color:#666;">Цель: <strong>${goalText}</strong></p>
-            <p>Площадь панелей: <strong>${finalKit.area_m2} м²</strong></p>
+            <h2>${displayKitName}</h2>
+
             <p>Выработка: <strong>${formatNum(annualGen)} кВт·ч/год</strong></p>
             <p>Экономия: <strong>${formatNum(savings)} ₽/год</strong></p>
-            ${warningHTML}
+                ${hybridText}  
+                ${warningHTML}
             <div class="price">${formatNum(finalKit.price_rub)} ₽</div>
-            
             <button class="primary-btn order-btn" id="showFormBtn" onclick="showRequestForm()">
                 Оставить заявку
             </button>
-
             <div id="requestForm" class="request-form-hidden">
                 <input type="text" id="userName" placeholder="Ваше имя">
                 <input type="email" id="userEmail" placeholder="Ваш Email (необязательно)">
