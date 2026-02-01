@@ -363,20 +363,31 @@ const displayKitName = `${systemNamePrefix} ${finalKit.power_kW} кВт`;
                 <input type="text" id="userName" placeholder="Ваше имя">
                 <input type="email" id="userEmail" placeholder="Ваш Email (необязательно)">
                 <input type="text" id="userPhone" placeholder="+7 (___) ___-__-__"> 
+                <div class="disclaimer-block">
+                <span class="disclaimer-icon">ⓘ</span>
+                <p>Данный расчет является предварительным. Итоговые показатели зависят от многих факторов. Использованы усредненные данные, полученные в лаборатории при идеальных условиях.</p>
+                </div>
                 <button class="primary-btn order-btn" 
                     onclick='sendFinalRequest(${calculatedParamsJSON})'>
                     Отправить менеджеру
                 </button>
+                <p class="privacy-agreement">
+                Нажимая на кнопку, вы соглашаетесь с 
+                <a href="privacy.html" target="_blank">политикой конфиденциальности</a>
+                </p>
             </div>
         </div>
         <div class="result-image-block">
             <img src="img/${finalKit.id}.jpg" alt="${finalKit.name}" onerror="this.src='https://via.placeholder.com/800x600?text=SUNCALC+KIT'">
         </div>
+        <p style="font-size: 10px; color: gray; margin-top: 5px; padding-left: 10px;">
+          Изображение носит иллюстративный характер. Источник: hevelsolar.com
+        </p>
     </div>
   `;
 }
 
-// =================== Инициализация ===================
+// ======== Инициализация 
 document.addEventListener('DOMContentLoaded', ()=>{
     const panelAreaIn = $('panelArea');
     const panelAreaTxt = $('panelAreaVal');
@@ -386,6 +397,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const appliancesBtn = $('appliancesBtn');
     const appliancesList = $('appliancesList');
     const selectedTagsContainer = $('selectedTags');
+    const powerInfoBtn = document.getElementById('powerInfoBtn');
+    const powerInfoOverlay = document.getElementById('powerInfoOverlay');
+    const closePowerInfo = document.getElementById('closePowerInfo');
+powerInfoBtn?.addEventListener('click', () => {
+    powerInfoOverlay.style.display = 'flex';
+});
+closePowerInfo?.addEventListener('click', () => {
+    powerInfoOverlay.style.display = 'none';
+});
+powerInfoOverlay?.addEventListener('click', (e) => {
+    if (e.target === powerInfoOverlay) {
+        powerInfoOverlay.style.display = 'none';
+    }
+});
+
 
     if (!panelAreaIn || !peakPowerIn || !regionSelect || !appliancesBtn || !appliancesList) {
         console.error("Критическая ошибка: не найдены ключевые элементы интерфейса. Проверьте calculator.html");
@@ -443,4 +469,33 @@ document.addEventListener('DOMContentLoaded', ()=>{
             modal.style.display = "none";
         });
     });
+
+let currentStep = 0;
+
+function showStep(index) {
+    const steps = document.querySelectorAll('.calc-step');
+    steps.forEach((step, i) => {
+        step.classList.toggle('active-step', i === index);
+    });
+    currentStep = index;
+}
+document.querySelector('.step-next')?.addEventListener('click', () => {
+    showStep(1);
 });
+
+document.querySelector('.step-calc')?.addEventListener('click', () => {
+    runCalculationAndRender();
+    showStep(2);
+});
+
+document.querySelector('.step-back')?.addEventListener('click', () => {
+    showStep(1);
+});
+
+if (window.innerWidth <= 900) {
+    showStep(0);
+}
+
+
+});
+
