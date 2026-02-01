@@ -478,6 +478,7 @@ function showStep(index) {
         step.classList.toggle('active-step', i === index);
     });
     currentStep = index;
+    window.scrollTo(0, 0);
 }
 document.querySelector('.step-next')?.addEventListener('click', () => {
     showStep(1);
@@ -494,6 +495,7 @@ document.querySelector('.step-back')?.addEventListener('click', () => {
 
 if (window.innerWidth <= 900) {
     showStep(0);
+
 }
 
 
